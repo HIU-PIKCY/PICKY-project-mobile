@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#F8F8F8',
+        backgroundColor: '#F3FCF9',
         borderRadius: 12,
         paddingVertical: 16,
     },
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     statDivider: {
         width: 1,
         height: 30,
-        backgroundColor: '#DBDBDB',
+        backgroundColor: '#E8E8E8',
     },
     menuSection: {
         paddingHorizontal: 20,
