@@ -17,6 +17,7 @@ import MintStar from '../assets/icons/MintStar.svg';
 
 const QuestionDetail = ({ navigation, route }) => {
     const [newAnswer, setNewAnswer] = useState('');
+    const [selectedSort, setSelectedSort] = useState('latest'); // '최신순'으로 초기화
 
     // 더미 데이터
     const questionData = {
@@ -146,11 +147,23 @@ const QuestionDetail = ({ navigation, route }) => {
                     <View style={styles.answersSectionHeader}>
                         <Text style={styles.answersTitle}>댓글</Text>
                         <View style={styles.sortButtons}>
-                            <TouchableOpacity style={styles.sortButton}>
-                                <Text style={styles.sortButtonText}>최신순</Text>
+                            <TouchableOpacity 
+                                style={styles.sortButton}
+                                onPress={() => setSelectedSort('latest')}
+                            >
+                                <Text style={[
+                                    styles.sortButtonText,
+                                    selectedSort === 'latest' && styles.sortButtonTextSelected
+                                ]}>최신순</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.sortButton}>
-                                <Text style={styles.sortButtonText}>추천순</Text>
+                            <TouchableOpacity 
+                                style={styles.sortButton}
+                                onPress={() => setSelectedSort('recommended')}
+                            >
+                                <Text style={[
+                                    styles.sortButtonText,
+                                    selectedSort === 'recommended' && styles.sortButtonTextSelected
+                                ]}>추천순</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -325,6 +338,9 @@ const styles = StyleSheet.create({
         fontFamily: 'SUIT-Medium',
         letterSpacing: -0.6,
         color: '#888',
+    },
+    sortButtonTextSelected: {
+        color: '#0D2525',
     },
     answerContainer: {
         backgroundColor: '#F3FCF9',
