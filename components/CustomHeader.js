@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 18,
     borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    borderBottomColor: '#E8E8E8',
   },
   leftSection: {
     flexDirection: 'row',
@@ -48,7 +48,8 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '500',
+    fontFamily: 'SUIT-SemiBold',
+    letterSpacing: -0.4,
   },
   headerRight: {
     alignItems: 'flex-end',

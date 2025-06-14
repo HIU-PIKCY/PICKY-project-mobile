@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import CustomHeader from '../components/CustomHeader';
+import MintStar from '../assets/icons/MintStar.svg';
 
 const QuestionDetail = ({ navigation, route }) => {
   const [newAnswer, setNewAnswer] = useState('');
@@ -101,7 +102,7 @@ const QuestionDetail = ({ navigation, route }) => {
               </View>
               <Text style={styles.questionAuthor}>AI 질문</Text>
             </View>
-            <Text style={styles.todayLabel}>{questionData.bookTitle}</Text>
+            <Text style={styles.bookLabel}>{questionData.bookTitle}</Text>
           </View>
 
           <Text style={styles.questionTitle}>{questionData.title}</Text>
@@ -164,7 +165,8 @@ const QuestionDetail = ({ navigation, route }) => {
         </View>
         <View style={styles.inputActions}>
           <TouchableOpacity style={styles.aiAnswerButton}>
-            <Text style={styles.aiAnswerButtonText}>🤖 AI 답변 생성</Text>
+            <MintStar/>
+            <Text style={styles.aiAnswerButtonText}>AI 답변 생성</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.submitButton} onPress={handleSubmitAnswer}>
             <Text style={styles.submitButtonText}>답변 등록</Text>
@@ -175,7 +177,7 @@ const QuestionDetail = ({ navigation, route }) => {
   );
 };
 
-// 기존 styles에서 header 관련 스타일 제거
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -210,26 +212,30 @@ const styles = StyleSheet.create({
   aiIconText: {
     color: '#fff',
     fontSize: 10,
-    fontWeight: '500',
   },
   questionAuthor: {
-    fontSize: 14,
+    fontSize: 12,
+    fontFamily: 'SUIT-Medium',
     color: '#666',
     marginRight: 12,
   },
-  todayLabel: {
+  bookLabel: {
     fontSize: 12,
+    fontFamily: 'SUIT-Medium',
     color: '#666',
   },
   questionTitle: {
     fontSize: 16,
-    fontWeight: '400',
+    fontFamily: 'SUIT-SemiBold',
     color: '#666',
+    letterSpacing: -0.4,
     marginBottom: 14,
   },
   questionContent: {
     fontSize: 14,
-    lineHeight: 18,
+    fontFamily: 'SUIT-Medium',
+    letterSpacing: -0.35,
+    lineHeight: 18.2,
     color: '#666',
     marginBottom: 14,
   },
@@ -241,7 +247,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   metaText: {
-    fontSize: 14,
+    fontSize: 12,
+    fontFamily: 'SUIT-Medium',
     color: '#666',
     marginLeft: 4,
   },
@@ -251,7 +258,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dateText: {
-    fontSize: 14,
+    fontSize: 12,
+    fontFamily: 'SUIT-Medium',
     color: '#666',
     marginLeft: 4,
   },
@@ -260,7 +268,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statText: {
-    fontSize: 14,
+    fontSize: 12,
+    fontFamily: 'SUIT-Medium',
     color: '#666',
     marginLeft: 4,
   },
@@ -276,15 +285,16 @@ const styles = StyleSheet.create({
     paddingBottom: 13,
     paddingLeft: 20,
     paddingRight: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#e9ecef',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    borderTopWidth: 0.5,
+    borderTopColor: '#E8E8E8',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#E8E8E8',
   },
   answersTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
+    fontSize: 14,
+    fontFamily: 'SUIT-SemiBold',
+    letterSpacing: -0.7,
+    color: '#4B4B4B',
   },
   sortButtons: {
     flexDirection: 'row',
@@ -293,8 +303,10 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   sortButtonText: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 12,
+    fontFamily: 'SUIT-Medium',
+    letterSpacing: -0.6,
+    color: '#888',
   },
   answerContainer: {
     backgroundColor: '#F3FCF9',
@@ -304,8 +316,8 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
     paddingLeft: 20,
     paddingRight: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#E8E8E8',
   },
   answerHeader: {
     flexDirection: 'row',
@@ -334,10 +346,13 @@ const styles = StyleSheet.create({
   },
   authorName: {
     fontSize: 10,
+    fontFamily: 'SUIT-Medium',
     color: '#666',
   },
   answerText: {
     fontSize: 12,
+    fontFamily: 'SUIT-Medium',
+    letterSpacing: -0.3,
     lineHeight: 16,
     color: '#666',
   },
@@ -354,16 +369,16 @@ const styles = StyleSheet.create({
   answerInputContainer: {
     backgroundColor: '#fff',
     paddingTop: 10,
-    paddingBottom: 15,
+    paddingBottom: 10,
     paddingLeft: 20,
     paddingRight: 20,
     borderTopWidth: 1,
-    borderTopColor: '#e9ecef',
+    borderTopColor: '#E8E8E8',
   },
   inputRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 5,
+    alignItems: 'center',
+    marginBottom: 15,
   },
   userIconSmall: {
     backgroundColor: '#f1f3f4',
@@ -373,15 +388,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
-    marginTop: 8,
-    marginBottom: 8,
   },
   answerInput: {
     flex: 1,
+    alignItems: 'center',
     padding: 10,
     fontSize: 14,
-    minHeight: 40,
-    maxHeight: 120,
+    fontFamily: 'SUIT-Regular',
+    letterSpacing: -0.35,
+    color: '#666',
+    height: 40,
     textAlignVertical: 'top',
   },
   inputActions: {
@@ -390,28 +406,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   aiAnswerButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     backgroundColor: '#fff',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderWidth: 0.5,
+    borderColor: '#E8E8E8',
   },
   aiAnswerButtonText: {
     fontSize: 14,
-    color: '#666',
+    fontFamily: 'SUIT-Regular',
+    letterSpacing: -0.35,
+    color: '#4B4B4B',
+    marginLeft: 5,
   },
   submitButton: {
     backgroundColor: '#fff',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderWidth: 0.5,
+    borderColor: '#E8E8E8',
   },
   submitButtonText: {
     fontSize: 14,
-    color: '#666',
+    fontFamily: 'SUIT-Regular',
+    letterSpacing: -0.35,
+    color: '#4B4B4B',
   },
 });
 
