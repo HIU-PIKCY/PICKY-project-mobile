@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import CustomHeader from '../components/CustomHeader';
 
 const QuestionDetail = ({ navigation, route }) => {
   const [newAnswer, setNewAnswer] = useState('');
@@ -58,50 +59,47 @@ const QuestionDetail = ({ navigation, route }) => {
     }
   };
 
-    const renderAnswer = (answer) => (
+  const renderAnswer = (answer) => (
     <View key={answer.id} style={styles.answerContainer}>
-        <View style={styles.authorIconContainer}>
+      <View style={styles.authorIconContainer}>
         {answer.isAI ? (
-            <View style={styles.aiIcon}>
+          <View style={styles.aiIcon}>
             <Text style={styles.aiIconText}>AI</Text>
-            </View>
+          </View>
         ) : (
-            <View style={styles.userIcon}>
+          <View style={styles.userIcon}>
             <Ionicons name="person" size={16} color="#666" />
-            </View>
+          </View>
         )}
-        </View>
-        <View style={styles.answerContentWrapper}>
+      </View>
+      <View style={styles.answerContentWrapper}>
         <View style={styles.answerHeader}>
-            <Text style={styles.authorName}>{answer.author}</Text>
+          <Text style={styles.authorName}>{answer.author}</Text>
         </View> 
         <Text style={styles.answerText}>{answer.content}</Text>
-        </View>
+      </View>
     </View>
-    );
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       
-      {/* 헤더 */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>질문답변</Text>
-        <View style={styles.headerRight} />
-      </View>
+      {/* 헤더 컴포넌트 */}
+      <CustomHeader 
+        title="질문답변"
+        onBackPress={handleGoBack}
+      />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* 질문 섹션 */}
         <View style={styles.questionSection}>
           <View style={styles.questionHeader}>
             <View style={styles.iconWrapper}>
-                <View style={styles.aiIcon}>
+              <View style={styles.aiIcon}>
                 <Text style={styles.aiIconText}>AI</Text>
-                </View>
-                <Text style={styles.questionAuthor}>AI 질문</Text>
+              </View>
+              <Text style={styles.questionAuthor}>AI 질문</Text>
             </View>
             <Text style={styles.todayLabel}>{questionData.bookTitle}</Text>
           </View>
@@ -117,39 +115,39 @@ const QuestionDetail = ({ navigation, route }) => {
           </View>
 
           <View style={styles.questionFooter}>
-              <View style={styles.statItem}>
-                <Ionicons name="calendar-outline" size={16} color="#666" />
-                <Text style={styles.dateText}>{questionData.date}</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Ionicons name="eye-outline" size={16} color="#666" />
-                <Text style={styles.statText}>조회수 {questionData.views}</Text>
-              </View>
-              <TouchableOpacity style={styles.statItem} onPress={handleLike}>
-                <Ionicons name="heart-outline" size={16} color="#666" />
-                <Text style={styles.statText}>추천 {questionData.likes}</Text>
-              </TouchableOpacity>
+            <View style={styles.statItem}>
+              <Ionicons name="calendar-outline" size={16} color="#666" />
+              <Text style={styles.dateText}>{questionData.date}</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Ionicons name="eye-outline" size={16} color="#666" />
+              <Text style={styles.statText}>조회수 {questionData.views}</Text>
+            </View>
+            <TouchableOpacity style={styles.statItem} onPress={handleLike}>
+              <Ionicons name="heart-outline" size={16} color="#666" />
+              <Text style={styles.statText}>추천 {questionData.likes}</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
         {/* 답변 섹션 */}
         <View style={styles.answersSectionHeader}>
-            <Text style={styles.answersTitle}>댓글</Text>
-            <View style={styles.sortButtons}>
-              <TouchableOpacity style={styles.sortButton}>
-                <Text style={styles.sortButtonText}>최신순</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.sortButton}>
-                <Text style={styles.sortButtonText}>추천순</Text>
-              </TouchableOpacity>
-            </View>
+          <Text style={styles.answersTitle}>댓글</Text>
+          <View style={styles.sortButtons}>
+            <TouchableOpacity style={styles.sortButton}>
+              <Text style={styles.sortButtonText}>최신순</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.sortButton}>
+              <Text style={styles.sortButtonText}>추천순</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         <View style={styles.answersSection}>
           {questionData.answers.map(renderAnswer)}
         </View>
       </ScrollView>
 
-      {/* 답변 input */}
+      {/* 답변 작성 섹션 */}
       <View style={styles.answerInputContainer}>
         <View style={styles.inputRow}>
           <View style={styles.userIconSmall}>
@@ -177,27 +175,11 @@ const QuestionDetail = ({ navigation, route }) => {
   );
 };
 
+// 기존 styles에서 header 관련 스타일 제거
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 18,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
-  },
-  backButton: {
-    marginRight: 10,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '500',
-    color: '#333',
   },
   content: {
     flex: 1,
@@ -392,6 +374,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 8,
     marginTop: 8,
+    marginBottom: 8,
   },
   answerInput: {
     flex: 1,
