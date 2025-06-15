@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   bookInfo: {
     flex: 1,
     justifyContent: "space-between",
-    height: 173, 
+    height: 173,
   },
   title: {
     fontSize: 18,
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
     height: 30,
     marginRight: 8,
   },
-  answerContentWrapper: { flex: 1, minWidth: 0},
+  answerContentWrapper: { flex: 1, minWidth: 0 },
   authorRow: {
     flexDirection: "row",
     alignItems: "center",
