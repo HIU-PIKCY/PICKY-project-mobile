@@ -1,51 +1,42 @@
 // QuestionPost.js
-import React, { forwardRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import React, { forwardRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, KeyboardAvoidingView, Platform, ScrollView, TextInput, Keyboard } from 'react-native';
 import { Modalize } from 'react-native-modalize';
 import MintStar from '../assets/icons/MintStar.svg';
 
 const screenHeight = Dimensions.get('window').height;
 
 export const AIQuestionSheet = forwardRef((props, ref) => {
-  return (
-    <Modalize
-      ref={ref}
-      snapPoint={screenHeight * 0.33}
-      modalHeight={screenHeight * 0.9} // 수정됨
-      handleStyle={styles.handleExpanded}
-      modalStyle={styles.modal}
-      withHandle
-      panGestureEnabled={false}
-    >
-      <View style={styles.handleSpacer12} />
-      <View style={styles.handle} />
-      <View style={styles.headerSpacer12} />
-      <View style={styles.sheetHeaderExpanded}><Text style={styles.sheetTitle}>AI 질문 생성</Text></View>
+  const [selectedTag, setSelectedTag] = useState(null);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [page, setPage] = useState('');
+  const [isExpanded, setIsExpanded] = useState(false);
 
-      <View style={styles.dividerMoreSpace} />
+  const tags = [
+    '작품의 주제와 의미',
+    '인물의 성격과 발전',
+    '이야기 구조와 기법',
+    '작품 배경과 시대적 맥락',
+  ];
 
-      <View style={styles.tagSectionWrapper}> 
-        <View style={styles.tagRowSpaced}><TouchableOpacity style={styles.tag}><Text style={styles.tagText}>작품의 주제와 의미</Text></TouchableOpacity><TouchableOpacity style={[styles.tag, styles.selectedTag]}><Text style={styles.selectedTagText}>인물의 성격과 발전</Text></TouchableOpacity></View>
-        <View style={styles.tagRowSpaced}><TouchableOpacity style={styles.tag}><Text style={styles.tagText}>이야기 구조와 기법</Text></TouchableOpacity><TouchableOpacity style={styles.tag}><Text style={styles.tagText}>작품 배경과 시대적 맥락</Text></TouchableOpacity></View>
-      </View>
+  const renderTag = (label) => {
+    const isSelected = selectedTag === label;
+    return (
+      <TouchableOpacity
+        key={label}
+        style={[styles.tag, isSelected && styles.selectedTag]}
+        onPress={() => setSelectedTag(label)}
+      >
+        <Text style={isSelected ? styles.selectedTagText : styles.tagText}>{label}</Text>
+      </TouchableOpacity>
+    );
+  };
 
-      <View style={styles.dividerMoreSpaceLoweredExact} />
+  const handleAISubmit = () => {
+    setIsSubmitted(true);
+    Keyboard.dismiss();
+  };
 
-      <View style={styles.bottomRowLiftedFinalAdjustedExact}>
-        <View style={styles.pageInputGroup}>
-          <Text style={styles.pageLabel}>페이지</Text>
-          <View style={styles.pageInputBox}><Text style={styles.pageInputText}>231</Text></View>
-        </View>
-        <TouchableOpacity style={styles.aiSubmitButton}>
-          <MintStar />
-          <Text style={styles.aiSubmitButtonText}>AI 질문 생성</Text></TouchableOpacity>
-      </View>
-      <View style={styles.bottomSpacer12} />
-    </Modalize>
-  );
-});
-
-export const QuestionWriteSheet = forwardRef((props, ref) => {
   return (
     <Modalize
       ref={ref}
@@ -54,43 +45,131 @@ export const QuestionWriteSheet = forwardRef((props, ref) => {
       handleStyle={styles.handleExpanded}
       modalStyle={styles.modal}
       withHandle
+      panGestureEnabled={true}
+      onPositionChange={(pos) => setIsExpanded(pos === 'top')}
+      scrollViewProps={{ keyboardShouldPersistTaps: 'handled', showsVerticalScrollIndicator: false }}
     >
-      <View style={styles.handleSpacer12} />
-      <View style={styles.handle} />
-      <View style={styles.headerSpacer12} />
-      <View style={styles.sheetHeaderExpanded}><Text style={styles.sheetTitle}>질문 작성</Text></View>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ minHeight: screenHeight * 0.9, paddingBottom: 100 }}>
+          <View style={styles.handleSpacer12} />
+          <View style={styles.handle} />
+          <View style={styles.headerSpacer12} />
+          <View style={styles.sheetHeaderExpanded}><Text style={styles.sheetTitle}>AI 질문 생성</Text></View>
 
-      <View style={styles.dividerMoreSpace} />
+          <View style={styles.dividerMoreSpace} />
 
-      <View style={styles.questionPreviewWrapper}>
-        <View style={styles.questionPreview}>
-          <View style={styles.questionTitleRow}>
-            <Text style={styles.previewLabel}>제목</Text>
-            <Text style={styles.previewTitle}>작가의 의도는?</Text>
+          <View style={styles.tagSectionWrapper}> 
+            <View style={styles.tagRowSpaced}>{renderTag(tags[0])}{renderTag(tags[1])}</View>
+            <View style={styles.tagRowSpaced}>{renderTag(tags[2])}{renderTag(tags[3])}</View>
           </View>
-          <Text style={styles.previewBody}>
-            이 책에서 보면.. 주인공은 이렇게 생각하잖아요..
-            근데 저는 이렇게 생각하거든요..
-            그러다가.. 작가는 어떤 의도로 이렇게 글을 쓴걸까..
-            하고 의문이 들어서 글을 써봅니다..
-          </Text>
-        </View>
-      </View>
 
-      <View style={styles.dividerMoreSpaceLoweredExact} />
+          <View style={styles.dividerMoreSpaceLoweredExact} />
 
-      <View style={styles.bottomRowLiftedFinalAdjustedExact}>
-        <View style={styles.pageInputGroup}>
-          <Text style={styles.pageLabel}>페이지</Text>
-          <View style={styles.pageInputBox}><Text style={styles.pageInputText}>231</Text></View>
-        </View>
-        <TouchableOpacity style={styles.submitButton}>
-          <Text style={styles.submitButtonText}>질문 등록</Text></TouchableOpacity>
-      </View>
-      <View style={styles.bottomSpacer12} />
+          <View style={styles.bottomRowLiftedFinalAdjustedExact}>
+            <View style={styles.pageInputGroup}>
+              <Text style={styles.pageLabel}>페이지</Text>
+              <TextInput
+                style={[styles.pageInputBox, styles.pageInputText, { paddingVertical: 2, textAlign: 'center' }]}
+                keyboardType="numeric"
+                value={page}
+                onChangeText={setPage}
+                editable={isExpanded}
+              />
+            </View>
+            <TouchableOpacity style={[styles.aiSubmitButton]} onPress={handleAISubmit}>
+              <MintStar />
+              <Text style={styles.aiSubmitButtonText}>AI 질문 생성</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.bottomSpacer12} />
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Modalize>
   );
 });
+
+export const QuestionWriteSheet = forwardRef((props, ref) => {
+  const [page, setPage] = useState('');
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const handleSubmit = () => {
+    Keyboard.dismiss();
+  };
+
+  return (
+    <Modalize
+      ref={ref}
+      snapPoint={screenHeight * 0.33}
+      modalHeight={screenHeight * 0.9}
+      handleStyle={styles.handleExpanded}
+      modalStyle={styles.modal}
+      withHandle
+      onPositionChange={(pos) => setIsExpanded(pos === 'top')}
+      scrollViewProps={{ keyboardShouldPersistTaps: 'handled', showsVerticalScrollIndicator: false }}
+    >
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ minHeight: screenHeight * 0.9, paddingBottom: 100 }}>
+          <View style={styles.handleSpacer12} />
+          <View style={styles.handle} />
+          <View style={styles.headerSpacer12} />
+          <View style={styles.sheetHeaderExpanded}><Text style={styles.sheetTitle}>질문 작성</Text></View>
+
+          <View style={styles.dividerMoreSpace} />
+
+          <View style={styles.questionPreviewWrapper}>
+            <View style={styles.questionPreview}>
+              <View style={styles.questionTitleRow}>
+                <Text style={styles.previewLabel}>제목</Text>
+                <TextInput
+                  style={[styles.previewTitle, { flex: 1, padding: 4 }]}
+                  value={title}
+                  onChangeText={setTitle}
+                  editable={isExpanded}
+                />
+              </View>
+              <TextInput
+                style={[styles.previewBody, { padding: 8, textAlignVertical: 'top', height: 50 }]}
+                value={body}
+                onChangeText={setBody}
+                multiline
+                editable={isExpanded}
+              />
+            </View>
+          </View>
+
+          <View style={styles.dividerMoreSpaceLoweredExact} />
+
+          <View style={styles.bottomRowLiftedFinalAdjustedExact}>
+            <View style={styles.pageInputGroup}>
+              <Text style={styles.pageLabel}>페이지</Text>
+              <TextInput
+                style={[styles.pageInputBox, styles.pageInputText, { paddingVertical: 2, textAlign: 'center' }]}
+                keyboardType="numeric"
+                value={page}
+                onChangeText={setPage}
+                editable={isExpanded}
+              />
+            </View>
+            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+              <Text style={styles.submitButtonText}>질문 등록</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.bottomSpacer12} />
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Modalize>
+  );
+});
+
+
+
+
+
+
+
+
 
 const styles = StyleSheet.create({
   modal: {
