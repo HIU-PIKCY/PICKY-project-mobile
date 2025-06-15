@@ -1,4 +1,4 @@
-import { useRef, React } from "react";
+import { useRef, React, useState } from "react";
 import {
   Dimensions,
   SafeAreaView,
@@ -14,7 +14,7 @@ import CustomHeader from "../components/CustomHeader";
 import MintStar from "../assets/icons/MintStar.svg";
 import { AIQuestionSheet, QuestionWriteSheet } from "./QuestionPost";
 
-// 더미 데이터
+// 더미 책 데이터
 const dummyBook = {
   title: "운수 좋은 날",
   author: "현진건",
@@ -23,7 +23,7 @@ const dummyBook = {
   status: "완독",
 };
 
-const dummyQuestions = [
+const initialQuestions = [
   {
     id: 1,
     author: "AI",
@@ -32,6 +32,7 @@ const dummyQuestions = [
     answers: 1,
     likes: 5,
     isAI: true,
+    page: 122,
   },
   {
     id: 2,
@@ -41,6 +42,7 @@ const dummyQuestions = [
     answers: 6,
     likes: 11,
     isAI: false,
+    page: 45,
   },
 ];
 
@@ -49,11 +51,40 @@ const BookDetail = ({ navigation }) => {
   const writeSheetRef = useRef(null);
   const screenHeight = Dimensions.get("window").height;
 
+  const [book, setBook] = useState(dummyBook);
+  const [questions, setQuestions] = useState(initialQuestions);
+
   const handleGoBack = () => navigation.goBack();
   const handleAIQuestion = () => aiSheetRef.current?.open();
   const handleQuestionRegister = () => writeSheetRef.current?.open();
   const handleDelete = () => console.log("내 서재에서 삭제");
   const goToQuestionDetail = () => navigation.navigate("QuestionDetail");
+
+  const handleAddQuestion = (questionData) => {
+    const newQuestion = {
+      id: Date.now(),
+      author: "나",
+      content: questionData.title,
+      views: 0,
+      answers: 0,
+      likes: 0,
+      isAI: false,
+      page: questionData.page ? parseInt(questionData.page) : null,
+      body: questionData.body,
+      createdAt: new Date(),
+    };
+
+    setQuestions((prevQuestions) => [newQuestion, ...prevQuestions]);
+
+    if (questionData.page) {
+      setBook((prev) => ({
+        ...prev,
+        pages: parseInt(questionData.page),
+      }));
+    }
+
+    writeSheetRef.current?.close();
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -65,31 +96,34 @@ const BookDetail = ({ navigation }) => {
           <View style={styles.bookSection}>
             <View style={styles.cover} />
             <View style={styles.bookInfo}>
-              <Text style={styles.title}>{dummyBook.title}</Text>
+              <Text style={styles.title}>{book.title}</Text>
 
               <View style={styles.metaRow}>
                 <Text style={styles.metaLabel}>작가</Text>
-                <Text style={styles.metaValue}>{dummyBook.author}</Text>
+                <Text style={styles.metaValue}>{book.author}</Text>
               </View>
 
               <View style={styles.metaRow}>
                 <Text style={styles.metaLabel}>출판사</Text>
-                <Text style={styles.metaValue}>{dummyBook.publisher}</Text>
+                <Text style={styles.metaValue}>{book.publisher}</Text>
               </View>
 
               <View style={styles.metaRow}>
                 <Text style={styles.metaLabel}>페이지</Text>
-                <Text style={styles.metaValue}>{dummyBook.pages}</Text>
+                <Text style={styles.metaValue}>{book.pages}</Text>
               </View>
 
               <View style={styles.metaRow}>
                 <Text style={styles.metaLabel}>상태</Text>
                 <Text style={styles.metaValue}>
-                  <Text style={styles.readDot}>•</Text> {dummyBook.status}
+                  <Text style={styles.readDot}>•</Text> {book.status}
                 </Text>
               </View>
 
-              <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={handleDelete}
+              >
                 <Text style={styles.deleteText}>내 서재에서 삭제</Text>
               </TouchableOpacity>
             </View>
@@ -100,7 +134,9 @@ const BookDetail = ({ navigation }) => {
           <Text style={styles.answersTitle}>독서 질문 리스트</Text>
           <View style={styles.sortButtons}>
             <TouchableOpacity>
-              <Text style={[styles.sortButtonText, styles.sortButtonTextSelected]}>
+              <Text
+                style={[styles.sortButtonText, styles.sortButtonTextSelected]}
+              >
                 최신순
               </Text>
             </TouchableOpacity>
@@ -110,7 +146,7 @@ const BookDetail = ({ navigation }) => {
           </View>
         </View>
 
-        {dummyQuestions.map((q) => (
+        {questions.map((q) => (
           <TouchableOpacity
             key={q.id}
             style={styles.answerContainer}
@@ -126,13 +162,17 @@ const BookDetail = ({ navigation }) => {
               )}
             </View>
             <View style={styles.answerContentWrapper}>
-              <Text style={styles.authorName}>{q.author}</Text>
+              <View style={styles.authorRow}>
+                <Text style={styles.authorName}>{q.author}</Text>
+              </View>
               <Text style={styles.answerText}>{q.content}</Text>
             </View>
             <View style={styles.answerMetaWrapper}>
               <View style={styles.statItem}>
                 <Ionicons name="book-outline" size={16} color="#666" />
-                <Text style={styles.statText}>{q.views}</Text>
+                <Text style={styles.statText}>
+                  {q.page !== null ? q.page : "-"}
+                </Text>
               </View>
               <Text style={styles.statText}>답변 {q.answers}</Text>
               <Text style={styles.statText}>추천 {q.likes}</Text>
@@ -142,17 +182,27 @@ const BookDetail = ({ navigation }) => {
       </ScrollView>
 
       <View style={styles.answerInputContainer}>
-        <TouchableOpacity style={styles.aiAnswerButton} onPress={handleAIQuestion}>
+        <TouchableOpacity
+          style={styles.aiAnswerButton}
+          onPress={handleAIQuestion}
+        >
           <MintStar />
           <Text style={styles.aiAnswerButtonText}>AI 질문 생성</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.submitButton} onPress={handleQuestionRegister}>
+        <TouchableOpacity
+          style={styles.submitButton}
+          onPress={handleQuestionRegister}
+        >
           <Text style={styles.submitButtonText}>질문 등록</Text>
         </TouchableOpacity>
       </View>
 
       <AIQuestionSheet ref={aiSheetRef} modalHeight={screenHeight} />
-      <QuestionWriteSheet ref={writeSheetRef} modalHeight={screenHeight} />
+      <QuestionWriteSheet
+        ref={writeSheetRef}
+        modalHeight={screenHeight}
+        onSubmit={handleAddQuestion}
+      />
     </SafeAreaView>
   );
 };
@@ -185,7 +235,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 8,
-    width: 90, // 고정 너비 설정 (필요에 따라 조정)
+    width: 90,
   },
   metaLabel: {
     fontSize: 14,
@@ -194,7 +244,7 @@ const styles = StyleSheet.create({
   },
   metaValue: {
     fontSize: 14,
-    fontFamily: "SUIT-Medium", 
+    fontFamily: "SUIT-Medium",
     color: "#666",
     textAlign: "right",
   },
@@ -257,12 +307,11 @@ const styles = StyleSheet.create({
   authorIconContainer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingTop: 10,
     paddingRight: 5,
   },
   aiIcon: {
     backgroundColor: "#333",
-    borderRadius: 15,
+    borderRadius: 16,
     width: 30,
     height: 30,
     alignItems: "center",
@@ -275,17 +324,27 @@ const styles = StyleSheet.create({
   },
   userIcon: {
     backgroundColor: "#f1f3f4",
-    borderRadius: 15,
+    borderRadius: 16,
     width: 30,
     height: 30,
     marginRight: 8,
   },
-  answerContentWrapper: { flex: 1, minWidth: 0 },
+  answerContentWrapper: { flex: 1, minWidth: 0},
+  authorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+  },
   authorName: {
     fontSize: 10,
     fontFamily: "SUIT-Medium",
     color: "#666",
-    marginBottom: 4,
+  },
+  pageInfo: {
+    fontSize: 10,
+    fontFamily: "SUIT-Medium",
+    color: "#90D1BE",
+    marginLeft: 8,
   },
   answerText: {
     fontSize: 14,
@@ -293,12 +352,20 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4,
     color: "#666",
   },
+  answerBody: {
+    fontSize: 12,
+    fontFamily: "SUIT-Medium",
+    color: "#999",
+    marginTop: 4,
+    lineHeight: 16,
+  },
   answerMetaWrapper: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
     gap: 12,
     marginLeft: 8,
+    marginTop: 3,
   },
   statItem: {
     flexDirection: "row",
