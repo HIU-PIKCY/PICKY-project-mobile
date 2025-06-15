@@ -1,9 +1,48 @@
 import { useRef, React } from "react";
-import { Dimensions, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Dimensions,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import CustomHeader from "../components/CustomHeader";
 import MintStar from "../assets/icons/MintStar.svg";
 import { AIQuestionSheet, QuestionWriteSheet } from "./QuestionPost";
+
+// 더미 데이터
+const dummyBook = {
+  title: "운수 좋은 날",
+  author: "현진건",
+  publisher: "소담",
+  pages: 231,
+  status: "완독",
+};
+
+const dummyQuestions = [
+  {
+    id: 1,
+    author: "AI",
+    content: "작가의 의도는?",
+    views: 122,
+    answers: 1,
+    likes: 5,
+    isAI: true,
+  },
+  {
+    id: 2,
+    author: "키티키티",
+    content: "이 책 너무 어렵네요..",
+    views: 27,
+    answers: 6,
+    likes: 11,
+    isAI: false,
+  },
+];
 
 const BookDetail = ({ navigation }) => {
   const aiSheetRef = useRef(null);
@@ -19,7 +58,6 @@ const BookDetail = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-
       <CustomHeader title="도서 상세" onBackPress={handleGoBack} />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -27,17 +65,31 @@ const BookDetail = ({ navigation }) => {
           <View style={styles.bookSection}>
             <View style={styles.cover} />
             <View style={styles.bookInfo}>
-              <Text style={styles.title}>운수 좋은 날</Text>
-              <Text style={styles.meta}>작가 현진건</Text>
-              <Text style={styles.meta}>출판사 소담</Text>
-              <Text style={styles.meta}>페이지 231</Text>
-              <Text style={styles.meta}>
-                상태 <Text style={styles.readStatus}>• 완독</Text>
-              </Text>
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={handleDelete}
-              >
+              <Text style={styles.title}>{dummyBook.title}</Text>
+
+              <View style={styles.metaRow}>
+                <Text style={styles.metaLabel}>작가</Text>
+                <Text style={styles.metaValue}>{dummyBook.author}</Text>
+              </View>
+
+              <View style={styles.metaRow}>
+                <Text style={styles.metaLabel}>출판사</Text>
+                <Text style={styles.metaValue}>{dummyBook.publisher}</Text>
+              </View>
+
+              <View style={styles.metaRow}>
+                <Text style={styles.metaLabel}>페이지</Text>
+                <Text style={styles.metaValue}>{dummyBook.pages}</Text>
+              </View>
+
+              <View style={styles.metaRow}>
+                <Text style={styles.metaLabel}>상태</Text>
+                <Text style={styles.metaValue}>
+                  <Text style={styles.readDot}>•</Text> {dummyBook.status}
+                </Text>
+              </View>
+
+              <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
                 <Text style={styles.deleteText}>내 서재에서 삭제</Text>
               </TouchableOpacity>
             </View>
@@ -48,9 +100,7 @@ const BookDetail = ({ navigation }) => {
           <Text style={styles.answersTitle}>독서 질문 리스트</Text>
           <View style={styles.sortButtons}>
             <TouchableOpacity>
-              <Text
-                style={[styles.sortButtonText, styles.sortButtonTextSelected]}
-              >
+              <Text style={[styles.sortButtonText, styles.sortButtonTextSelected]}>
                 최신순
               </Text>
             </TouchableOpacity>
@@ -60,60 +110,43 @@ const BookDetail = ({ navigation }) => {
           </View>
         </View>
 
-        <TouchableOpacity
-          style={styles.answerContainer}
-          onPress={goToQuestionDetail}
-        >
-          <View style={styles.authorIconContainer}>
-            <View style={styles.aiIcon}>
-              <Text style={styles.aiIconText}>AI</Text>
+        {dummyQuestions.map((q) => (
+          <TouchableOpacity
+            key={q.id}
+            style={styles.answerContainer}
+            onPress={q.isAI ? goToQuestionDetail : undefined}
+          >
+            <View style={styles.authorIconContainer}>
+              {q.isAI ? (
+                <View style={styles.aiIcon}>
+                  <Text style={styles.aiIconText}>AI</Text>
+                </View>
+              ) : (
+                <View style={styles.userIcon} />
+              )}
             </View>
-          </View>
-          <View style={styles.answerContentWrapper}>
-            <Text style={styles.authorName}>AI 질문</Text>
-            <Text style={styles.answerText}>작가의 의도는?</Text>
-          </View>
-          <View style={styles.answerMetaWrapper}>
-            <View style={styles.statItem}>
-              <Ionicons name="book-outline" size={16} color="#666" />
-              <Text style={styles.statText}>122</Text>
+            <View style={styles.answerContentWrapper}>
+              <Text style={styles.authorName}>{q.author}</Text>
+              <Text style={styles.answerText}>{q.content}</Text>
             </View>
-            <Text style={styles.statText}>답변 1</Text>
-            <Text style={styles.statText}>추천 5</Text>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.answerContainer}>
-          <View style={styles.authorIconContainer}>
-            <View style={styles.userIcon} />
-          </View>
-          <View style={styles.answerContentWrapper}>
-            <Text style={styles.authorName}>키티키티</Text>
-            <Text style={styles.answerText}>이 책 너무 어렵네요..</Text>
-          </View>
-          <View style={styles.answerMetaWrapper}>
-            <View style={styles.statItem}>
-              <Ionicons name="book-outline" size={16} color="#666" />
-              <Text style={styles.statText}>27</Text>
+            <View style={styles.answerMetaWrapper}>
+              <View style={styles.statItem}>
+                <Ionicons name="book-outline" size={16} color="#666" />
+                <Text style={styles.statText}>{q.views}</Text>
+              </View>
+              <Text style={styles.statText}>답변 {q.answers}</Text>
+              <Text style={styles.statText}>추천 {q.likes}</Text>
             </View>
-            <Text style={styles.statText}>답변 6</Text>
-            <Text style={styles.statText}>추천 11</Text>
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        ))}
       </ScrollView>
 
       <View style={styles.answerInputContainer}>
-        <TouchableOpacity
-          style={styles.aiAnswerButton}
-          onPress={handleAIQuestion}
-        >
+        <TouchableOpacity style={styles.aiAnswerButton} onPress={handleAIQuestion}>
           <MintStar />
           <Text style={styles.aiAnswerButtonText}>AI 질문 생성</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.submitButton}
-          onPress={handleQuestionRegister}
-        >
+        <TouchableOpacity style={styles.submitButton} onPress={handleQuestionRegister}>
           <Text style={styles.submitButtonText}>질문 등록</Text>
         </TouchableOpacity>
       </View>
@@ -124,12 +157,15 @@ const BookDetail = ({ navigation }) => {
   );
 };
 
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   scrollContent: { flexGrow: 1 },
   questionSection: { backgroundColor: "#fff", padding: 20 },
-  bookSection: { flexDirection: "row", marginBottom: 20 },
+  bookSection: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 5,
+  },
   cover: {
     width: 115,
     height: 173,
@@ -137,21 +173,39 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginRight: 20,
   },
-  bookInfo: { justifyContent: "flex-start", gap: 6 },
+  bookInfo: { justifyContent: "flex-start" },
   title: {
     fontSize: 18,
     fontFamily: "SUIT-SemiBold",
     color: "#0D2525",
-    marginBottom: 4,
+    marginBottom: 10,
   },
-  meta: {
+  metaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+    width: 90, // 고정 너비 설정 (필요에 따라 조정)
+  },
+  metaLabel: {
     fontSize: 14,
     fontFamily: "SUIT-Medium",
     color: "#666",
   },
-  readStatus: { color: "#90D1BE" },
+  metaValue: {
+    fontSize: 14,
+    fontFamily: "SUIT-Medium", 
+    color: "#666",
+    textAlign: "right",
+  },
+  readDot: {
+    fontSize: 14,
+    fontFamily: "SUIT-Medium",
+    color: "#90D1BE",
+    marginRight: 4,
+  },
   deleteButton: {
-    marginTop: 10,
+    marginTop: 20,
     borderWidth: 1,
     borderColor: "#DA1717",
     paddingHorizontal: 20,
