@@ -25,8 +25,8 @@ const NavTab = () => {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#90D1BE',
-        tabBarInactiveTintColor: '#DBDBDB',
+        tabBarActiveTintColor: '#0D2525',
+        tabBarInactiveTintColor: '#888888',
         tabBarStyle: NavTabStyle.tabBarStyle,
         tabBarLabelStyle: NavTabStyle.tabBarLabelStyle,
         headerShown: false,
