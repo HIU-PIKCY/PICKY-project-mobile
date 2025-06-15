@@ -253,7 +253,6 @@ export const QuestionWriteSheet = forwardRef(({ onSubmit }, ref) => {
                 value={page}
                 onChangeText={setPage}
                 editable={isExpanded}
-                placeholder="페이지"
                 placeholderTextColor="#CCCCCC"
               />
             </View>

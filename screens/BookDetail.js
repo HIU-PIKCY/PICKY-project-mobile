@@ -76,13 +76,6 @@ const BookDetail = ({ navigation }) => {
 
     setQuestions((prevQuestions) => [newQuestion, ...prevQuestions]);
 
-    if (questionData.page) {
-      setBook((prev) => ({
-        ...prev,
-        pages: parseInt(questionData.page),
-      }));
-    }
-
     writeSheetRef.current?.close();
   };
 
@@ -223,7 +216,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginRight: 20,
   },
-  bookInfo: { justifyContent: "flex-start" },
+  bookInfo: {
+    flex: 1,
+    justifyContent: "space-between",
+    height: 173, 
+  },
   title: {
     fontSize: 18,
     fontFamily: "SUIT-SemiBold",
@@ -255,7 +252,6 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   deleteButton: {
-    marginTop: 20,
     borderWidth: 1,
     borderColor: "#DA1717",
     paddingHorizontal: 20,
