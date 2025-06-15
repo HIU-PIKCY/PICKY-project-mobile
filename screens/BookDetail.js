@@ -1,26 +1,18 @@
-import { useState, React } from "react";
-import { AIQuestionSheet, QuestionWriteSheet } from "./QuestionPost";
-
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  SafeAreaView,
-  StatusBar,
-} from "react-native";
+import { useRef, React } from "react";
+import { Dimensions, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import CustomHeader from "../components/CustomHeader";
 import MintStar from "../assets/icons/MintStar.svg";
+import { AIQuestionSheet, QuestionWriteSheet } from "./QuestionPost";
 
 const BookDetail = ({ navigation }) => {
-  const [showAISheet, setShowAISheet] = useState(false);
-  const [showWriteSheet, setShowWriteSheet] = useState(false);
+  const aiSheetRef = useRef(null);
+  const writeSheetRef = useRef(null);
+  const screenHeight = Dimensions.get("window").height;
 
   const handleGoBack = () => navigation.goBack();
-  const handleAIQuestion = () => console.log("AI 질문 생성");
-  const handleQuestionRegister = () => console.log("질문 등록");
+  const handleAIQuestion = () => aiSheetRef.current?.open();
+  const handleQuestionRegister = () => writeSheetRef.current?.open();
   const handleDelete = () => console.log("내 서재에서 삭제");
   const goToQuestionDetail = () => navigation.navigate("QuestionDetail");
 
@@ -125,13 +117,13 @@ const BookDetail = ({ navigation }) => {
           <Text style={styles.submitButtonText}>질문 등록</Text>
         </TouchableOpacity>
       </View>
-      {showAISheet && <AIQuestionSheet onClose={() => setShowAISheet(false)} />}
-      {showWriteSheet && (
-        <QuestionWriteSheet onClose={() => setShowWriteSheet(false)} />
-      )}
+
+      <AIQuestionSheet ref={aiSheetRef} modalHeight={screenHeight} />
+      <QuestionWriteSheet ref={writeSheetRef} modalHeight={screenHeight} />
     </SafeAreaView>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
