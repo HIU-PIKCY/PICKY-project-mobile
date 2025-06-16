@@ -102,13 +102,14 @@ const BookDetail = ({ navigation, route }) => {
   const [book, setBook] = useState({
     title: bookData?.title || "제목 없음",
     author: bookData?.author || "작가 미상",
-    publisher: "소담", // 더미 데이터
+    publisher: "출판사 미상", // 더미 데이터
     pages: 231, // 더미 데이터
     status: bookData?.status || "읽는 중",
     coverImage: bookData?.coverImage || null,
   });
   
   const [questions, setQuestions] = useState([]);
+  const [selectedSort, setSelectedSort] = useState('latest');
 
   // 컴포넌트 마운트 시 해당 책의 질문들 로드
   useEffect(() => {
@@ -222,15 +223,27 @@ const BookDetail = ({ navigation, route }) => {
         <View style={styles.answersSectionHeader}>
           <Text style={styles.answersTitle}>독서 질문 리스트</Text>
           <View style={styles.sortButtons}>
-            <TouchableOpacity>
-              <Text
-                style={[styles.sortButtonText, styles.sortButtonTextSelected]}
-              >
+            <TouchableOpacity 
+              style={styles.sortButton}
+              onPress={() => setSelectedSort('latest')}
+            >
+              <Text style={[
+                styles.sortButtonText,
+                selectedSort === 'latest' && styles.sortButtonTextSelected
+              ]}>
                 최신순
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity>
-              <Text style={styles.sortButtonText}>추천순</Text>
+            <TouchableOpacity 
+              style={styles.sortButton}
+              onPress={() => setSelectedSort('recommended')}
+            >
+              <Text style={[
+                styles.sortButtonText,
+                selectedSort === 'recommended' && styles.sortButtonTextSelected
+              ]}>
+                추천순
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -388,14 +401,18 @@ const styles = StyleSheet.create({
     color: "#4B4B4B",
   },
   sortButtons: { flexDirection: "row" },
+  sortButton: {
+    marginLeft: 12,
+  },
   sortButtonText: {
     fontSize: 12,
     fontFamily: "SUIT-Medium",
     letterSpacing: -0.6,
     color: "#888",
-    marginLeft: 12,
   },
-  sortButtonTextSelected: { color: "#0D2525" },
+  sortButtonTextSelected: { 
+    color: "#0D2525" 
+  },
   answerContainer: {
     backgroundColor: "#F3FCF9",
     flexDirection: "row",
