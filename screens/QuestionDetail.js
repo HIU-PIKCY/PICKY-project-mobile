@@ -10,6 +10,7 @@ import {
     StatusBar,
     KeyboardAvoidingView,
     Platform,
+    Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import CustomHeader from '../components/CustomHeader';
@@ -18,6 +19,20 @@ import MintStar from '../assets/icons/MintStar.svg';
 const QuestionDetail = ({ navigation, route }) => {
     const [newAnswer, setNewAnswer] = useState('');
     const [selectedSort, setSelectedSort] = useState('latest');
+    const [answers, setAnswers] = useState([
+        {
+            id: 1,
+            author: 'AI 답변',
+            content: '주인공은 세 단계의 성장 과정을 거치게 돼요.\n그 과정에서 얻은 인사이트들로 주인공은 성장하게 되죠.',
+            isAI: true,
+        },
+        {
+            id: 2,
+            author: '키티키티',
+            content: '이 소설에서 주인공은 시골에서 도시로 이주했는데 마음이 좋지 않았어요. 그 과정에서 주인공의 고난이 시작됐거든요ㅠㅠ',
+            isAI: false,
+        }
+    ]);
 
     // route params에서 질문 데이터와 책 데이터 가져오기
     const { questionData, bookData } = route.params || {};
@@ -31,21 +46,6 @@ const QuestionDetail = ({ navigation, route }) => {
         views: questionData?.views,
         likes: questionData?.likes,
         pages: questionData?.page,
-        // 답변은 더미 데이터
-        answers: [
-            {
-                id: 1,
-                author: 'AI 답변',
-                content: '주인공은 세 단계의 성장 과정을 거치게 돼요.\n그 과정에서 얻은 인사이트들로 주인공은 성장하게 되죠.',
-                isAI: true,
-            },
-            {
-                id: 2,
-                author: '키티키티',
-                content: '이 소설에서 주인공은 시골에서 도시로 이주했는데 마음이 좋지 않았어요. 그 과정에서 주인공의 고난이 시작됐거든요ㅠㅠ',
-                isAI: false,
-            }
-        ]
     };
 
     const handleGoBack = () => {
@@ -53,15 +53,22 @@ const QuestionDetail = ({ navigation, route }) => {
     };
 
     const handleLike = () => {
-        // 좋아요 기능
         console.log('좋아요 클릭');
     };
 
     const handleSubmitAnswer = () => {
         if (newAnswer.trim()) {
-            // 답변 제출 로직
-            console.log('새 답변:', newAnswer);
-            setNewAnswer('');
+            // 새 답변을 배열에 추가
+            const newAnswerData = {
+                id: Date.now(), // 임시 ID
+                author: '나',
+                content: newAnswer.trim(),
+                isAI: false,
+            };
+            
+            setAnswers(prev => [...prev, newAnswerData]);
+            setNewAnswer(''); // 입력 필드 초기화
+            Keyboard.dismiss(); // 키보드 닫기
         }
     };
 
@@ -171,8 +178,9 @@ const QuestionDetail = ({ navigation, route }) => {
                             </TouchableOpacity>
                         </View>
                     </View>
+                    
                     <View style={styles.answersSection}>
-                        {question.answers.map(renderAnswer)}
+                        {answers.map(renderAnswer)}
                     </View>
                 </ScrollView>
 
@@ -392,16 +400,6 @@ const styles = StyleSheet.create({
         fontFamily: 'SUIT-Medium',
         letterSpacing: -0.3,
         lineHeight: 16,
-        color: '#666',
-    },
-    answerActions: {
-        flexDirection: 'row',
-    },
-    actionButton: {
-        marginLeft: 12,
-    },
-    actionText: {
-        fontSize: 14,
         color: '#666',
     },
     answerInputContainer: {
