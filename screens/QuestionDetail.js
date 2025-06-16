@@ -10,6 +10,7 @@ import {
     StatusBar,
     KeyboardAvoidingView,
     Platform,
+    Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import CustomHeader from '../components/CustomHeader';
@@ -17,33 +18,34 @@ import MintStar from '../assets/icons/MintStar.svg';
 
 const QuestionDetail = ({ navigation, route }) => {
     const [newAnswer, setNewAnswer] = useState('');
-    const [selectedSort, setSelectedSort] = useState('latest'); // '최신순'으로 초기화
+    const [selectedSort, setSelectedSort] = useState('latest');
+    const [answers, setAnswers] = useState([
+        {
+            id: 1,
+            author: 'AI 답변',
+            content: '작가는 <운수 좋은 날>이라는 제목으로 삶의 잔혹한 아이러니를 드러내고자 했습니다. 김첨지에게 경제적으로는 좋은 날이었지만 가장 소중한 것을 잃은 날이기도 했죠. 이를 통해 당시 서민들이 처한 무력한 현실과 그에 대한 체념을 보여주면서도, 동시에 그러한 현실 자체를 비판하고 있다고 봅니다.',
+            isAI: true,
+        },
+        {
+            id: 2,
+            author: '키티키티',
+            content: '김첨지가 마지막에 "운수가 좋다"고 말하는 게... 아내가 더 이상 고생하지 않아도 된다는 안도감도 있는 것 같아요. 제목 자체가 너무 슬픈 아이러니네요😢',
+            isAI: false,
+        }
+    ]);
 
-    // 더미 데이터
-    const questionData = {
-        id: 1,
-        bookTitle: '운수 좋은 날',
-        title: '작가의 의도는?',
-        content: '이 책에서 보면,\n주인공은 이렇게 생각하잖아요..\n근데 저는 이렇게 생각하거든요..\n그러다가.. 작가는 어떤 의도로 이렇게 글을 쓴걸까.. 하고 의문이 들어서 글을 써봅니다..',
-        author: 'AI 질문',
-        date: '2025.04.20',
-        views: 31,
-        likes: 5,
-        pages: 122,
-        answers: [
-            {
-                id: 1,
-                author: 'AI 답변',
-                content: '주인공은 세 단계의 성장 과정을 거치게 돼요.\n그 과정에서 얻은 인사이트들로 주인공은 성장하게 되죠.',
-                isAI: true,
-            },
-            {
-                id: 2,
-                author: '키티키티',
-                content: '이 소설에서 주인공은 시골에서 도시로 이주했는데 마음이 좋지 않았어요. 그 과정에서 주인공의 고난이 시작됐거든요ㅠㅠ',
-                isAI: false,
-            }
-        ]
+    // route params에서 질문 데이터와 책 데이터 가져오기
+    const { questionData, bookData } = route.params || {};
+
+    // 전달받은 데이터 사용
+    const question = {
+        id: questionData?.id,
+        bookTitle: bookData?.title,
+        title: questionData?.content,
+        author: questionData?.author,
+        views: questionData?.views,
+        likes: questionData?.likes,
+        pages: questionData?.page,
     };
 
     const handleGoBack = () => {
@@ -51,15 +53,22 @@ const QuestionDetail = ({ navigation, route }) => {
     };
 
     const handleLike = () => {
-        // 좋아요 기능
         console.log('좋아요 클릭');
     };
 
     const handleSubmitAnswer = () => {
         if (newAnswer.trim()) {
-            // 답변 제출 로직
-            console.log('새 답변:', newAnswer);
-            setNewAnswer('');
+            // 새 답변을 배열에 추가
+            const newAnswerData = {
+                id: Date.now(), // 임시 ID
+                author: '나',
+                content: newAnswer.trim(),
+                isAI: false,
+            };
+            
+            setAnswers(prev => [...prev, newAnswerData]);
+            setNewAnswer(''); // 입력 필드 초기화
+            Keyboard.dismiss(); // 키보드 닫기
         }
     };
 
@@ -114,61 +123,45 @@ const QuestionDetail = ({ navigation, route }) => {
                                 </View>
                                 <Text style={styles.questionAuthor}>AI 질문</Text>
                             </View>
-                            <Text style={styles.bookLabel}>{questionData.bookTitle}</Text>
+                            <Text style={styles.bookLabel}>{question.bookTitle}</Text>
                         </View>
 
-                        <Text style={styles.questionTitle}>{questionData.title}</Text>
-                        <Text style={styles.questionContent}>{questionData.content}</Text>
-
+                        <Text style={styles.questionTitle}>{question.title}</Text>
+                        <Text style={styles.questionContent}>
+                            김첨지가 아내의 죽음을 알고도 "운수가 좋다"고 중얼거리는 마지막 장면이 인상적입니다.{'\n'}작가는 제목 '운수 좋은 날'에 담긴 아이러니를 통해 무엇을 말하고자 했을까요?{'\n'}여러분은 이 소설의 제목과 결말에 담긴 작가의 진정한 의도가 무엇이라고 생각하시나요?
+                        </Text>
+                        
                         <View style={styles.questionMeta}>
                             <View style={styles.metaItem}>
                                 <Ionicons name="book-outline" size={16} color="#666" />
-                                <Text style={styles.metaText}>페이지 {questionData.pages}</Text>
+                                <Text style={styles.metaText}>페이지 {question.pages || '-'}</Text>
                             </View>
                         </View>
 
                         <View style={styles.questionFooter}>
                             <View style={styles.statItem}>
                                 <Ionicons name="calendar-outline" size={16} color="#666" />
-                                <Text style={styles.dateText}>{questionData.date}</Text>
+                                <Text style={styles.dateText}>2025.04.20</Text>
                             </View>
                             <View style={styles.statItem}>
                                 <Ionicons name="eye-outline" size={16} color="#666" />
-                                <Text style={styles.statText}>조회수 {questionData.views}</Text>
+                                <Text style={styles.statText}>조회수 {question.views || 0}</Text>
                             </View>
                             <TouchableOpacity style={styles.statItem} onPress={handleLike}>
                                 <Ionicons name="heart-outline" size={16} color="#666" />
-                                <Text style={styles.statText}>추천 {questionData.likes}</Text>
+                                <Text style={styles.statText}>추천 {question.likes || 0}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
 
                     {/* 답변 섹션 */}
                     <View style={styles.answersSectionHeader}>
-                        <Text style={styles.answersTitle}>댓글</Text>
-                        <View style={styles.sortButtons}>
-                            <TouchableOpacity 
-                                style={styles.sortButton}
-                                onPress={() => setSelectedSort('latest')}
-                            >
-                                <Text style={[
-                                    styles.sortButtonText,
-                                    selectedSort === 'latest' && styles.sortButtonTextSelected
-                                ]}>최신순</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity 
-                                style={styles.sortButton}
-                                onPress={() => setSelectedSort('recommended')}
-                            >
-                                <Text style={[
-                                    styles.sortButtonText,
-                                    selectedSort === 'recommended' && styles.sortButtonTextSelected
-                                ]}>추천순</Text>
-                            </TouchableOpacity>
-                        </View>
+                        <Text style={styles.answersTitle}>답변</Text>
+                        <Text style={styles.sortButtonText}>최신순</Text>
                     </View>
+                    
                     <View style={styles.answersSection}>
-                        {questionData.answers.map(renderAnswer)}
+                        {answers.map(renderAnswer)}
                     </View>
                 </ScrollView>
 
@@ -327,19 +320,10 @@ const styles = StyleSheet.create({
         letterSpacing: -0.7,
         color: '#4B4B4B',
     },
-    sortButtons: {
-        flexDirection: 'row',
-    },
-    sortButton: {
-        marginLeft: 12,
-    },
     sortButtonText: {
         fontSize: 12,
         fontFamily: 'SUIT-Medium',
         letterSpacing: -0.6,
-        color: '#888',
-    },
-    sortButtonTextSelected: {
         color: '#0D2525',
     },
     answerContainer: {
@@ -388,16 +372,6 @@ const styles = StyleSheet.create({
         fontFamily: 'SUIT-Medium',
         letterSpacing: -0.3,
         lineHeight: 16,
-        color: '#666',
-    },
-    answerActions: {
-        flexDirection: 'row',
-    },
-    actionButton: {
-        marginLeft: 12,
-    },
-    actionText: {
-        fontSize: 14,
         color: '#666',
     },
     answerInputContainer: {

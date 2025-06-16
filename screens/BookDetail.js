@@ -1,5 +1,4 @@
-import React, { useRef, useState } from "react";
-import { useRoute } from "@react-navigation/native";
+import { useRef, React, useState, useEffect } from "react";
 import {
   Dimensions,
   SafeAreaView,
@@ -16,48 +15,143 @@ import CustomHeader from "../components/CustomHeader";
 import MintStar from "../assets/icons/MintStar.svg";
 import { AIQuestionSheet, QuestionWriteSheet } from "./QuestionPost";
 
-const initialQuestions = [
-  {
-    id: 1,
-    author: "AI",
-    content: "작가의 의도는?",
-    views: 122,
-    answers: 1,
-    likes: 5,
-    isAI: true,
-    page: 122,
-  },
-  {
-    id: 2,
-    author: "키티키티",
-    content: "이 책 너무 어렵네요..",
-    views: 27,
-    answers: 6,
-    likes: 11,
-    isAI: false,
-    page: 45,
-  },
-];
+// 더미 질문 데이터 (책별로 다른 질문들)
+const getQuestionsForBook = (bookId) => {
+  const questionsByBook = {
+    1: [ // 운수 좋은 날
+      {
+        id: 1,
+        author: "AI",
+        content: "작가의 의도는?",
+        views: 122,
+        answers: 2,
+        likes: 5,
+        isAI: true,
+        page: 220,
+      },
+      {
+        id: 2,
+        author: "키티키티",
+        content: "이 책 너무 어렵네요..",
+        views: 27,
+        answers: 6,
+        likes: 11,
+        isAI: false,
+        page: 45,
+      },
+    ],
+    2: [ // 노스텔지어
+      {
+        id: 3,
+        author: "AI",
+        content: "감정의 변화 과정이 어떻게 그려지나요?",
+        views: 89,
+        answers: 3,
+        likes: 12,
+        isAI: true,
+        page: 67,
+      },
+    ],
+    3: [ // 1984
+      {
+        id: 4,
+        author: "AI",
+        content: "빅브라더의 상징적 의미는?",
+        views: 156,
+        answers: 8,
+        likes: 23,
+        isAI: true,
+        page: 89,
+      },
+      {
+        id: 5,
+        author: "독서왕",
+        content: "현실과 너무 비슷해서 무서워요",
+        views: 45,
+        answers: 12,
+        likes: 18,
+        isAI: false,
+        page: 234,
+      },
+    ],
+    // 다른 책들은 기본 질문들로
+  };
 
-const BookDetail = ({ navigation }) => {
+  return questionsByBook[bookId] || [
+    {
+      id: Date.now(),
+      author: "AI",
+      content: "이 책에 대한 질문을 생성해보세요!",
+      views: 0,
+      answers: 0,
+      likes: 0,
+      isAI: true,
+      page: null,
+    },
+  ];
+};
+
+const BookDetail = ({ navigation, route }) => {
   const aiSheetRef = useRef(null);
   const writeSheetRef = useRef(null);
   const screenHeight = Dimensions.get("window").height;
-  const route = useRoute();
-  const { book } = route.params;
 
-  const [questions, setQuestions] = useState(initialQuestions);
+  // route params에서 책 데이터 가져오기
+  const { bookData } = route.params || {};
+  
+  const [book, setBook] = useState({
+    title: bookData?.title || "제목 없음",
+    author: bookData?.author || "작가 미상",
+    publisher: "소담", // 더미 데이터
+    pages: 231, // 더미 데이터
+    status: bookData?.status || "읽는 중",
+    coverImage: bookData?.coverImage || null,
+  });
+  
+  const [questions, setQuestions] = useState([]);
+  const [selectedSort, setSelectedSort] = useState('latest');
+
+  // 컴포넌트 마운트 시 해당 책의 질문들 로드
+  useEffect(() => {
+    if (bookData?.id) {
+      const bookQuestions = getQuestionsForBook(bookData.id);
+      setQuestions(bookQuestions);
+    }
+  }, [bookData]);
 
   const handleGoBack = () => navigation.goBack();
   const handleAIQuestion = () => aiSheetRef.current?.open();
   const handleQuestionRegister = () => writeSheetRef.current?.open();
   const handleDelete = () => console.log("내 서재에서 삭제");
-  const goToQuestionDetail = () => navigation.navigate("QuestionDetail");
+  const goToQuestionDetail = (question) => {
+    const questionToPass = {
+      id: question.id,
+      author: question.author,
+      content: question.content,
+      views: question.views,
+      answers: question.answers,
+      likes: question.likes,
+      isAI: question.isAI,
+      page: question.page
+    };
+    
+    const bookToPass = {
+      id: bookData?.id,
+      title: bookData?.title,
+      author: bookData?.author,
+      status: bookData?.status
+    };
+    
+    navigation.navigate("QuestionDetail", {
+      questionData: questionToPass,
+      bookData: bookToPass
+    });
+  };
 
   const handleAddQuestion = (questionData) => {
     const newQuestion = {
       id: Date.now(),
-      author: "나", // 임의로 설정..
+      author: "나",
       content: questionData.title,
       views: 0,
       answers: 0,
@@ -69,7 +163,6 @@ const BookDetail = ({ navigation }) => {
     };
 
     setQuestions((prevQuestions) => [newQuestion, ...prevQuestions]);
-
     writeSheetRef.current?.close();
   };
 
@@ -81,54 +174,40 @@ const BookDetail = ({ navigation }) => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.questionSection}>
           <View style={styles.bookSection}>
-            <Image
-              source={{ uri: book.coverImage }}
-              style={styles.cover}
-              resizeMode="cover"
-            />
+            <View style={styles.cover}>
+              {book.coverImage ? (
+                <Image 
+                  source={{ uri: book.coverImage }} 
+                  style={styles.coverImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.emptyCover} />
+              )}
+            </View>
             <View style={styles.bookInfo}>
               <Text style={styles.title}>{book.title}</Text>
 
               <View style={styles.metaRow}>
                 <Text style={styles.metaLabel}>작가</Text>
-                <View style={styles.metaValueWrapper}>
-                  <Text
-                    style={styles.metaValue}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                  >
-                    {book.author}
-                  </Text>
-                </View>
+                <Text style={styles.metaValue}>{book.author}</Text>
               </View>
 
               <View style={styles.metaRow}>
                 <Text style={styles.metaLabel}>출판사</Text>
-                <View style={styles.metaValueWrapper}>
-                  <Text
-                    style={styles.metaValue}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                  >
-                    {book.publisher}
-                  </Text>
-                </View>
+                <Text style={styles.metaValue}>{book.publisher}</Text>
               </View>
 
               <View style={styles.metaRow}>
                 <Text style={styles.metaLabel}>페이지</Text>
-                <View style={styles.metaValueWrapper}>
-                  <Text style={styles.metaValue}>{book.pages}</Text>
-                </View>
+                <Text style={styles.metaValue}>{book.pages}</Text>
               </View>
 
               <View style={styles.metaRow}>
                 <Text style={styles.metaLabel}>상태</Text>
-                <View style={styles.metaValueWrapper}>
-                  <Text style={styles.metaValue}>
-                    <Text style={styles.readDot}>•</Text> {book.status}
-                  </Text>
-                </View>
+                <Text style={styles.metaValue}>
+                  <Text style={styles.readDot}>•</Text> {book.status}
+                </Text>
               </View>
 
               <TouchableOpacity
@@ -144,15 +223,27 @@ const BookDetail = ({ navigation }) => {
         <View style={styles.answersSectionHeader}>
           <Text style={styles.answersTitle}>독서 질문 리스트</Text>
           <View style={styles.sortButtons}>
-            <TouchableOpacity>
-              <Text
-                style={[styles.sortButtonText, styles.sortButtonTextSelected]}
-              >
+            <TouchableOpacity 
+              style={styles.sortButton}
+              onPress={() => setSelectedSort('latest')}
+            >
+              <Text style={[
+                styles.sortButtonText,
+                selectedSort === 'latest' && styles.sortButtonTextSelected
+              ]}>
                 최신순
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity>
-              <Text style={styles.sortButtonText}>추천순</Text>
+            <TouchableOpacity 
+              style={styles.sortButton}
+              onPress={() => setSelectedSort('recommended')}
+            >
+              <Text style={[
+                styles.sortButtonText,
+                selectedSort === 'recommended' && styles.sortButtonTextSelected
+              ]}>
+                추천순
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -161,7 +252,7 @@ const BookDetail = ({ navigation }) => {
           <TouchableOpacity
             key={q.id}
             style={styles.answerContainer}
-            onPress={q.isAI ? goToQuestionDetail : undefined}
+            onPress={() => goToQuestionDetail(q)}
           >
             <View style={styles.authorIconContainer}>
               {q.isAI ? (
@@ -230,9 +321,18 @@ const styles = StyleSheet.create({
   cover: {
     width: 115,
     height: 173,
-    backgroundColor: "#E8E8E8",
     borderRadius: 4,
     marginRight: 20,
+    overflow: 'hidden',
+  },
+  coverImage: {
+    width: '100%',
+    height: '100%',
+  },
+  emptyCover: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: "#E8E8E8",
   },
   bookInfo: {
     flex: 1,
@@ -247,31 +347,22 @@ const styles = StyleSheet.create({
   },
   metaRow: {
     flexDirection: "row",
-    justifyContent: "flex-start",
+    justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 8,
+    width: 90,
   },
-
   metaLabel: {
     fontSize: 14,
     fontFamily: "SUIT-Medium",
     color: "#666",
-    width: 60,
   },
-
-  metaValueWrapper: {
-    width: 60,
-    alignItems: "flex-end",
-  },
-
   metaValue: {
     fontSize: 14,
     fontFamily: "SUIT-Medium",
     color: "#666",
     textAlign: "right",
-    adjustsFontSizeToFit: true, // 긴 텍스트 폰트 줄이기
   },
-
   readDot: {
     fontSize: 14,
     fontFamily: "SUIT-Medium",
@@ -310,14 +401,18 @@ const styles = StyleSheet.create({
     color: "#4B4B4B",
   },
   sortButtons: { flexDirection: "row" },
+  sortButton: {
+    marginLeft: 12,
+  },
   sortButtonText: {
     fontSize: 12,
     fontFamily: "SUIT-Medium",
     letterSpacing: -0.6,
     color: "#888",
-    marginLeft: 12,
   },
-  sortButtonTextSelected: { color: "#0D2525" },
+  sortButtonTextSelected: { 
+    color: "#0D2525" 
+  },
   answerContainer: {
     backgroundColor: "#F3FCF9",
     flexDirection: "row",
