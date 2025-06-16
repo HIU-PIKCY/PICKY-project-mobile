@@ -62,11 +62,11 @@ const MainScreen = () => {
           >
             <View style={styles.statItem}>
               <Text style={styles.statLabel}>총 독서량</Text>
-              <Text style={styles.statValue}>12<Text style={styles.statLabel}>권</Text></Text>
+              <Text style={styles.statValue}>12</Text><Text style={styles.statLabel}>권</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={styles.statLabel}>질문/답변</Text>
-              <Text style={styles.statValue}>24<Text style={styles.statLabel}>개</Text></Text>
+              <Text style={styles.statValue}>24</Text><Text style={styles.statLabel}>개</Text>
             </View>
           </TouchableOpacity>
           {showTooltip && (
