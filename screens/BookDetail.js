@@ -24,7 +24,7 @@ const getQuestionsForBook = (bookId) => {
         author: "AI",
         content: "작가의 의도는?",
         views: 122,
-        answers: 1,
+        answers: 2,
         likes: 5,
         isAI: true,
         page: 122,
@@ -122,7 +122,30 @@ const BookDetail = ({ navigation, route }) => {
   const handleAIQuestion = () => aiSheetRef.current?.open();
   const handleQuestionRegister = () => writeSheetRef.current?.open();
   const handleDelete = () => console.log("내 서재에서 삭제");
-  const goToQuestionDetail = () => navigation.navigate("QuestionDetail");
+  const goToQuestionDetail = (question) => {
+    const questionToPass = {
+      id: question.id,
+      author: question.author,
+      content: question.content,
+      views: question.views,
+      answers: question.answers,
+      likes: question.likes,
+      isAI: question.isAI,
+      page: question.page
+    };
+    
+    const bookToPass = {
+      id: bookData?.id,
+      title: bookData?.title,
+      author: bookData?.author,
+      status: bookData?.status
+    };
+    
+    navigation.navigate("QuestionDetail", {
+      questionData: questionToPass,
+      bookData: bookToPass
+    });
+  };
 
   const handleAddQuestion = (questionData) => {
     const newQuestion = {
@@ -216,7 +239,7 @@ const BookDetail = ({ navigation, route }) => {
           <TouchableOpacity
             key={q.id}
             style={styles.answerContainer}
-            onPress={q.isAI ? goToQuestionDetail : undefined}
+            onPress={() => goToQuestionDetail(q)}
           >
             <View style={styles.authorIconContainer}>
               {q.isAI ? (

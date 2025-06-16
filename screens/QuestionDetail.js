@@ -17,19 +17,21 @@ import MintStar from '../assets/icons/MintStar.svg';
 
 const QuestionDetail = ({ navigation, route }) => {
     const [newAnswer, setNewAnswer] = useState('');
-    const [selectedSort, setSelectedSort] = useState('latest'); // '최신순'으로 초기화
+    const [selectedSort, setSelectedSort] = useState('latest');
 
-    // 더미 데이터
-    const questionData = {
-        id: 1,
-        bookTitle: '운수 좋은 날',
-        title: '작가의 의도는?',
-        content: '이 책에서 보면,\n주인공은 이렇게 생각하잖아요..\n근데 저는 이렇게 생각하거든요..\n그러다가.. 작가는 어떤 의도로 이렇게 글을 쓴걸까.. 하고 의문이 들어서 글을 써봅니다..',
-        author: 'AI 질문',
-        date: '2025.04.20',
-        views: 31,
-        likes: 5,
-        pages: 122,
+    // route params에서 질문 데이터와 책 데이터 가져오기
+    const { questionData, bookData } = route.params || {};
+
+    // 전달받은 데이터 사용
+    const question = {
+        id: questionData?.id,
+        bookTitle: bookData?.title,
+        title: questionData?.content,
+        author: questionData?.author,
+        views: questionData?.views,
+        likes: questionData?.likes,
+        pages: questionData?.page,
+        // 답변은 더미 데이터
         answers: [
             {
                 id: 1,
@@ -114,31 +116,33 @@ const QuestionDetail = ({ navigation, route }) => {
                                 </View>
                                 <Text style={styles.questionAuthor}>AI 질문</Text>
                             </View>
-                            <Text style={styles.bookLabel}>{questionData.bookTitle}</Text>
+                            <Text style={styles.bookLabel}>{question.bookTitle}</Text>
                         </View>
 
-                        <Text style={styles.questionTitle}>{questionData.title}</Text>
-                        <Text style={styles.questionContent}>{questionData.content}</Text>
-
+                        <Text style={styles.questionTitle}>{question.title}</Text>
+                        <Text style={styles.questionContent}>
+                            이 책에서 보면,{'\n'}주인공은 이렇게 생각하잖아요..{'\n'}근데 저는 이렇게 생각하거든요..{'\n'}그러다가.. 작가는 어떤 의도로 이렇게 글을 쓴걸까.. 하고 의문이 들어서 글을 써봅니다..
+                        </Text>
+                        
                         <View style={styles.questionMeta}>
                             <View style={styles.metaItem}>
                                 <Ionicons name="book-outline" size={16} color="#666" />
-                                <Text style={styles.metaText}>페이지 {questionData.pages}</Text>
+                                <Text style={styles.metaText}>페이지 {question.pages || '-'}</Text>
                             </View>
                         </View>
 
                         <View style={styles.questionFooter}>
                             <View style={styles.statItem}>
                                 <Ionicons name="calendar-outline" size={16} color="#666" />
-                                <Text style={styles.dateText}>{questionData.date}</Text>
+                                <Text style={styles.dateText}>2025.04.20</Text>
                             </View>
                             <View style={styles.statItem}>
                                 <Ionicons name="eye-outline" size={16} color="#666" />
-                                <Text style={styles.statText}>조회수 {questionData.views}</Text>
+                                <Text style={styles.statText}>조회수 {question.views || 0}</Text>
                             </View>
                             <TouchableOpacity style={styles.statItem} onPress={handleLike}>
                                 <Ionicons name="heart-outline" size={16} color="#666" />
-                                <Text style={styles.statText}>추천 {questionData.likes}</Text>
+                                <Text style={styles.statText}>추천 {question.likes || 0}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -168,7 +172,7 @@ const QuestionDetail = ({ navigation, route }) => {
                         </View>
                     </View>
                     <View style={styles.answersSection}>
-                        {questionData.answers.map(renderAnswer)}
+                        {question.answers.map(renderAnswer)}
                     </View>
                 </ScrollView>
 
