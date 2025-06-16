@@ -27,7 +27,7 @@ const getQuestionsForBook = (bookId) => {
         answers: 2,
         likes: 5,
         isAI: true,
-        page: 122,
+        page: 220,
       },
       {
         id: 2,
@@ -102,7 +102,7 @@ const BookDetail = ({ navigation, route }) => {
   const [book, setBook] = useState({
     title: bookData?.title || "제목 없음",
     author: bookData?.author || "작가 미상",
-    publisher: "출판사 미상", // 더미 데이터
+    publisher: "소담", // 더미 데이터
     pages: 231, // 더미 데이터
     status: bookData?.status || "읽는 중",
     coverImage: bookData?.coverImage || null,
