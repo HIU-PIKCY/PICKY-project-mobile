@@ -24,10 +24,10 @@ const getQuestionsForBook = (bookId) => {
         author: "AI",
         content: "작가의 의도는?",
         views: 122,
-        answers: 1,
+        answers: 2,
         likes: 5,
         isAI: true,
-        page: 122,
+        page: 220,
       },
       {
         id: 2,
@@ -109,6 +109,7 @@ const BookDetail = ({ navigation, route }) => {
   });
   
   const [questions, setQuestions] = useState([]);
+  const [selectedSort, setSelectedSort] = useState('latest');
 
   // 컴포넌트 마운트 시 해당 책의 질문들 로드
   useEffect(() => {
@@ -122,7 +123,30 @@ const BookDetail = ({ navigation, route }) => {
   const handleAIQuestion = () => aiSheetRef.current?.open();
   const handleQuestionRegister = () => writeSheetRef.current?.open();
   const handleDelete = () => console.log("내 서재에서 삭제");
-  const goToQuestionDetail = () => navigation.navigate("QuestionDetail");
+  const goToQuestionDetail = (question) => {
+    const questionToPass = {
+      id: question.id,
+      author: question.author,
+      content: question.content,
+      views: question.views,
+      answers: question.answers,
+      likes: question.likes,
+      isAI: question.isAI,
+      page: question.page
+    };
+    
+    const bookToPass = {
+      id: bookData?.id,
+      title: bookData?.title,
+      author: bookData?.author,
+      status: bookData?.status
+    };
+    
+    navigation.navigate("QuestionDetail", {
+      questionData: questionToPass,
+      bookData: bookToPass
+    });
+  };
 
   const handleAddQuestion = (questionData) => {
     const newQuestion = {
@@ -199,15 +223,27 @@ const BookDetail = ({ navigation, route }) => {
         <View style={styles.answersSectionHeader}>
           <Text style={styles.answersTitle}>독서 질문 리스트</Text>
           <View style={styles.sortButtons}>
-            <TouchableOpacity>
-              <Text
-                style={[styles.sortButtonText, styles.sortButtonTextSelected]}
-              >
+            <TouchableOpacity 
+              style={styles.sortButton}
+              onPress={() => setSelectedSort('latest')}
+            >
+              <Text style={[
+                styles.sortButtonText,
+                selectedSort === 'latest' && styles.sortButtonTextSelected
+              ]}>
                 최신순
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity>
-              <Text style={styles.sortButtonText}>추천순</Text>
+            <TouchableOpacity 
+              style={styles.sortButton}
+              onPress={() => setSelectedSort('recommended')}
+            >
+              <Text style={[
+                styles.sortButtonText,
+                selectedSort === 'recommended' && styles.sortButtonTextSelected
+              ]}>
+                추천순
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -216,7 +252,7 @@ const BookDetail = ({ navigation, route }) => {
           <TouchableOpacity
             key={q.id}
             style={styles.answerContainer}
-            onPress={q.isAI ? goToQuestionDetail : undefined}
+            onPress={() => goToQuestionDetail(q)}
           >
             <View style={styles.authorIconContainer}>
               {q.isAI ? (
@@ -365,14 +401,18 @@ const styles = StyleSheet.create({
     color: "#4B4B4B",
   },
   sortButtons: { flexDirection: "row" },
+  sortButton: {
+    marginLeft: 12,
+  },
   sortButtonText: {
     fontSize: 12,
     fontFamily: "SUIT-Medium",
     letterSpacing: -0.6,
     color: "#888",
-    marginLeft: 12,
   },
-  sortButtonTextSelected: { color: "#0D2525" },
+  sortButtonTextSelected: { 
+    color: "#0D2525" 
+  },
   answerContainer: {
     backgroundColor: "#F3FCF9",
     flexDirection: "row",
