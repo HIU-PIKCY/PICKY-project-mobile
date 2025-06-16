@@ -95,7 +95,7 @@ const BookDetail = ({ navigation }) => {
                   <Text
                     style={styles.metaValue}
                     numberOfLines={1}
-                    ellipsizeMode="tail"
+                    adjustsFontSizeToFit
                   >
                     {book.author}
                   </Text>
@@ -108,7 +108,7 @@ const BookDetail = ({ navigation }) => {
                   <Text
                     style={styles.metaValue}
                     numberOfLines={1}
-                    ellipsizeMode="tail"
+                    adjustsFontSizeToFit
                   >
                     {book.publisher}
                   </Text>
@@ -246,31 +246,32 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   metaRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    alignItems: "center",
     marginBottom: 8,
   },
-  
+
   metaLabel: {
     fontSize: 14,
-    fontFamily: 'SUIT-Medium',
-    color: '#666',
+    fontFamily: "SUIT-Medium",
+    color: "#666",
     width: 60,
   },
-  
+
   metaValueWrapper: {
     width: 60,
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
-  
+
   metaValue: {
     fontSize: 14,
-    fontFamily: 'SUIT-Medium',
-    color: '#666',
-    textAlign: 'right',
+    fontFamily: "SUIT-Medium",
+    color: "#666",
+    textAlign: "right",
+    adjustsFontSizeToFit: true, // 긴 텍스트 폰트 줄이기
   },
-  
+
   readDot: {
     fontSize: 14,
     fontFamily: "SUIT-Medium",
