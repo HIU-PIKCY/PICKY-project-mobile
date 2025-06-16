@@ -8,13 +8,14 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import CustomHeader from "../components/CustomHeader";
 import MintStar from "../assets/icons/MintStar.svg";
 import { AIQuestionSheet, QuestionWriteSheet } from "./QuestionPost";
 
-// 더미 질문 데이터
+// 더미 질문 데이터 (책별로 다른 질문들)
 const getQuestionsForBook = (bookId) => {
   const questionsByBook = {
     1: [ // 운수 좋은 날
@@ -150,7 +151,15 @@ const BookDetail = ({ navigation, route }) => {
         <View style={styles.questionSection}>
           <View style={styles.bookSection}>
             <View style={styles.cover}>
-              {/* 여기에 실제 책 커버 이미지가 들어갈 수 있음 */}
+              {book.coverImage ? (
+                <Image 
+                  source={{ uri: book.coverImage }} 
+                  style={styles.coverImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.emptyCover} />
+              )}
             </View>
             <View style={styles.bookInfo}>
               <Text style={styles.title}>{book.title}</Text>
@@ -276,9 +285,18 @@ const styles = StyleSheet.create({
   cover: {
     width: 115,
     height: 173,
-    backgroundColor: "#E8E8E8",
     borderRadius: 4,
     marginRight: 20,
+    overflow: 'hidden',
+  },
+  coverImage: {
+    width: '100%',
+    height: '100%',
+  },
+  emptyCover: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: "#E8E8E8",
   },
   bookInfo: {
     flex: 1,
