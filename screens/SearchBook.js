@@ -111,8 +111,7 @@ const SearchBookScreen = ({ navigation }) => {
       <CustomHeader 
         title="도서 검색"
         onBackPress={() => {
-          // 네비게이션 뒤로가기 로직
-          console.log('뒤로가기');
+          navigation.goBack();
         }}
       />
 
@@ -177,7 +176,8 @@ const styles = StyleSheet.create({
   },
   searchSection: {
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 3,
+    justifyContent: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#E8E8E8',
   },
@@ -242,7 +242,8 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   bookCard: {
-    width: '31%',
+    width: '30%',
+    marginRight: '5%',
     marginBottom: 20,
     padding: 12,
     backgroundColor: '#FFFFFF',
@@ -269,6 +270,59 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#666666',
     textAlign: 'center',
+  },
+  // 드롭다운 스타일
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'flex-start',
+    paddingTop: 100, // 헤더와 검색바 높이 고려
+    paddingHorizontal: 16,
+  },
+  dropdownContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    maxWidth: 150,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  dropdownItemFirst: {
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+  },
+  dropdownItemLast: {
+    borderBottomWidth: 0,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+  },
+  dropdownItemSelected: {
+    backgroundColor: '#F0F8FF',
+  },
+  dropdownItemText: {
+    fontSize: 14,
+    color: '#333333',
+    fontWeight: '400',
+  },
+  dropdownItemTextSelected: {
+    color: '#007AFF',
+    fontWeight: '600',
   },
 });
 
