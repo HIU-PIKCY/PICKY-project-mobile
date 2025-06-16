@@ -1,4 +1,4 @@
-import { useRef, React, useState } from "react";
+import { useRef, React, useState, useEffect } from "react";
 import {
   Dimensions,
   SafeAreaView,
@@ -8,51 +8,115 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import CustomHeader from "../components/CustomHeader";
 import MintStar from "../assets/icons/MintStar.svg";
 import { AIQuestionSheet, QuestionWriteSheet } from "./QuestionPost";
 
-// 더미 책 데이터
-const dummyBook = {
-  title: "운수 좋은 날",
-  author: "현진건",
-  publisher: "소담",
-  pages: 231,
-  status: "완독",
+// 더미 질문 데이터 (책별로 다른 질문들)
+const getQuestionsForBook = (bookId) => {
+  const questionsByBook = {
+    1: [ // 운수 좋은 날
+      {
+        id: 1,
+        author: "AI",
+        content: "작가의 의도는?",
+        views: 122,
+        answers: 1,
+        likes: 5,
+        isAI: true,
+        page: 122,
+      },
+      {
+        id: 2,
+        author: "키티키티",
+        content: "이 책 너무 어렵네요..",
+        views: 27,
+        answers: 6,
+        likes: 11,
+        isAI: false,
+        page: 45,
+      },
+    ],
+    2: [ // 노스텔지어
+      {
+        id: 3,
+        author: "AI",
+        content: "감정의 변화 과정이 어떻게 그려지나요?",
+        views: 89,
+        answers: 3,
+        likes: 12,
+        isAI: true,
+        page: 67,
+      },
+    ],
+    3: [ // 1984
+      {
+        id: 4,
+        author: "AI",
+        content: "빅브라더의 상징적 의미는?",
+        views: 156,
+        answers: 8,
+        likes: 23,
+        isAI: true,
+        page: 89,
+      },
+      {
+        id: 5,
+        author: "독서왕",
+        content: "현실과 너무 비슷해서 무서워요",
+        views: 45,
+        answers: 12,
+        likes: 18,
+        isAI: false,
+        page: 234,
+      },
+    ],
+    // 다른 책들은 기본 질문들로
+  };
+
+  return questionsByBook[bookId] || [
+    {
+      id: Date.now(),
+      author: "AI",
+      content: "이 책에 대한 질문을 생성해보세요!",
+      views: 0,
+      answers: 0,
+      likes: 0,
+      isAI: true,
+      page: null,
+    },
+  ];
 };
 
-const initialQuestions = [
-  {
-    id: 1,
-    author: "AI",
-    content: "작가의 의도는?",
-    views: 122,
-    answers: 1,
-    likes: 5,
-    isAI: true,
-    page: 122,
-  },
-  {
-    id: 2,
-    author: "키티키티",
-    content: "이 책 너무 어렵네요..",
-    views: 27,
-    answers: 6,
-    likes: 11,
-    isAI: false,
-    page: 45,
-  },
-];
-
-const BookDetail = ({ navigation }) => {
+const BookDetail = ({ navigation, route }) => {
   const aiSheetRef = useRef(null);
   const writeSheetRef = useRef(null);
   const screenHeight = Dimensions.get("window").height;
 
-  const [book, setBook] = useState(dummyBook);
-  const [questions, setQuestions] = useState(initialQuestions);
+  // route params에서 책 데이터 가져오기
+  const { bookData } = route.params || {};
+  
+  const [book, setBook] = useState({
+    title: bookData?.title || "제목 없음",
+    author: bookData?.author || "작가 미상",
+    publisher: "소담", // 더미 데이터
+    pages: 231, // 더미 데이터
+    status: bookData?.status || "읽는 중",
+    coverImage: bookData?.coverImage || null,
+  });
+  
+  const [questions, setQuestions] = useState([]);
+
+  // 컴포넌트 마운트 시 해당 책의 질문들 로드
+  useEffect(() => {
+    if (bookData?.id) {
+      const bookQuestions = getQuestionsForBook(bookData.id);
+      setQuestions(bookQuestions);
+    }
+  }, [bookData]);
 
   const handleGoBack = () => navigation.goBack();
   const handleAIQuestion = () => aiSheetRef.current?.open();
@@ -75,7 +139,6 @@ const BookDetail = ({ navigation }) => {
     };
 
     setQuestions((prevQuestions) => [newQuestion, ...prevQuestions]);
-
     writeSheetRef.current?.close();
   };
 
@@ -87,7 +150,17 @@ const BookDetail = ({ navigation }) => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.questionSection}>
           <View style={styles.bookSection}>
-            <View style={styles.cover} />
+            <View style={styles.cover}>
+              {book.coverImage ? (
+                <Image 
+                  source={{ uri: book.coverImage }} 
+                  style={styles.coverImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.emptyCover} />
+              )}
+            </View>
             <View style={styles.bookInfo}>
               <Text style={styles.title}>{book.title}</Text>
 
@@ -212,9 +285,18 @@ const styles = StyleSheet.create({
   cover: {
     width: 115,
     height: 173,
-    backgroundColor: "#E8E8E8",
     borderRadius: 4,
     marginRight: 20,
+    overflow: 'hidden',
+  },
+  coverImage: {
+    width: '100%',
+    height: '100%',
+  },
+  emptyCover: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: "#E8E8E8",
   },
   bookInfo: {
     flex: 1,
