@@ -156,27 +156,8 @@ const QuestionDetail = ({ navigation, route }) => {
 
                     {/* 답변 섹션 */}
                     <View style={styles.answersSectionHeader}>
-                        <Text style={styles.answersTitle}>댓글</Text>
-                        <View style={styles.sortButtons}>
-                            <TouchableOpacity 
-                                style={styles.sortButton}
-                                onPress={() => setSelectedSort('latest')}
-                            >
-                                <Text style={[
-                                    styles.sortButtonText,
-                                    selectedSort === 'latest' && styles.sortButtonTextSelected
-                                ]}>최신순</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity 
-                                style={styles.sortButton}
-                                onPress={() => setSelectedSort('recommended')}
-                            >
-                                <Text style={[
-                                    styles.sortButtonText,
-                                    selectedSort === 'recommended' && styles.sortButtonTextSelected
-                                ]}>추천순</Text>
-                            </TouchableOpacity>
-                        </View>
+                        <Text style={styles.answersTitle}>답변</Text>
+                        <Text style={styles.sortButtonText}>최신순</Text>
                     </View>
                     
                     <View style={styles.answersSection}>
@@ -339,19 +320,10 @@ const styles = StyleSheet.create({
         letterSpacing: -0.7,
         color: '#4B4B4B',
     },
-    sortButtons: {
-        flexDirection: 'row',
-    },
-    sortButton: {
-        marginLeft: 12,
-    },
     sortButtonText: {
         fontSize: 12,
         fontFamily: 'SUIT-Medium',
         letterSpacing: -0.6,
-        color: '#888',
-    },
-    sortButtonTextSelected: {
         color: '#0D2525',
     },
     answerContainer: {
