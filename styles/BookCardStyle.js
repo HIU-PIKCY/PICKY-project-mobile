@@ -7,12 +7,23 @@ export const styles = StyleSheet.create({
     marginBottom: 20,
     alignItems: 'flex-start',
   },
-  bookCover: {
+  coverWrapper: {
     width: '100%',
     height: 120,
-    backgroundColor: '#E8E8E8',
-    borderRadius: 4,
     marginBottom: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+    backgroundColor: '#E8E8E8',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bookCover: {
+    width: '100%',
+    height: '100%',
+  },
+  spinner: {
+    position: 'absolute',
+    zIndex: 1,
   },
   bookTitle: {
     fontFamily: 'SUIT-Medium',

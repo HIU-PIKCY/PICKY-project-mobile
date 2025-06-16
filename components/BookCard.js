@@ -1,8 +1,13 @@
-import React from 'react';
-import { View, TouchableOpacity, Text } from 'react-native';
+import React, { useState } from 'react';
+import { View, TouchableOpacity, Text, Image, ActivityIndicator } from 'react-native';
 import { styles } from '../styles/BookCardStyle';
 
+const fallbackImage = require('../assets/default_cover.png'); // 기본 이미지
+
 const BookCard = ({ book, index, onPress }) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
   return (
     <TouchableOpacity 
       style={[
@@ -12,7 +17,27 @@ const BookCard = ({ book, index, onPress }) => {
       onPress={() => onPress(book)}
       activeOpacity={0.7}
     >
-      <View style={styles.bookCover} />
+      <View style={styles.coverWrapper}>
+        {!imageLoaded && !imageError && (
+          <ActivityIndicator 
+            style={styles.spinner}
+            size="small"
+            color="#888"
+          />
+        )}
+        <Image
+          source={
+            imageError || !book.coverImage 
+              ? fallbackImage 
+              : { uri: book.coverImage }
+          }
+          style={styles.bookCover}
+          resizeMode="cover"
+          onLoad={() => setImageLoaded(true)}
+          onError={() => setImageError(true)}
+        />
+      </View>
+
       <Text 
         style={styles.bookTitle}
         numberOfLines={1}
