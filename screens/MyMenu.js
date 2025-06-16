@@ -29,6 +29,10 @@ const MyMenu = ({ navigation }) => {
         { id: 3, title: '질문/답변 관리', icon: 'chatbubble-outline' },
     ];
 
+    const handleGoBack = () => {
+        navigation.goBack();
+    };
+
     const renderMenuItem = (item) => (
         <TouchableOpacity key={item.id} style={styles.menuItem}>
             <View style={styles.menuItemLeft}>
@@ -46,6 +50,7 @@ const MyMenu = ({ navigation }) => {
             {/* 헤더 컴포넌트 */}
             <CustomHeader
                 title="마이"
+                onBackPress={handleGoBack}
             />
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
