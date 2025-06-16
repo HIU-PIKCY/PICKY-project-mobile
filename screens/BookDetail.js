@@ -1,4 +1,5 @@
-import { useRef, React, useState } from "react";
+import React, { useRef, useState } from "react";
+import { useRoute } from "@react-navigation/native";
 import {
   Dimensions,
   SafeAreaView,
@@ -8,20 +9,12 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import CustomHeader from "../components/CustomHeader";
 import MintStar from "../assets/icons/MintStar.svg";
 import { AIQuestionSheet, QuestionWriteSheet } from "./QuestionPost";
-
-// 더미 책 데이터
-const dummyBook = {
-  title: "운수 좋은 날",
-  author: "현진건",
-  publisher: "소담",
-  pages: 231,
-  status: "완독",
-};
 
 const initialQuestions = [
   {
@@ -50,8 +43,9 @@ const BookDetail = ({ navigation }) => {
   const aiSheetRef = useRef(null);
   const writeSheetRef = useRef(null);
   const screenHeight = Dimensions.get("window").height;
+  const route = useRoute();
+  const { book } = route.params;
 
-  const [book, setBook] = useState(dummyBook);
   const [questions, setQuestions] = useState(initialQuestions);
 
   const handleGoBack = () => navigation.goBack();
@@ -63,7 +57,7 @@ const BookDetail = ({ navigation }) => {
   const handleAddQuestion = (questionData) => {
     const newQuestion = {
       id: Date.now(),
-      author: "나",
+      author: "나", // 임의로 설정..
       content: questionData.title,
       views: 0,
       answers: 0,
@@ -87,30 +81,54 @@ const BookDetail = ({ navigation }) => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.questionSection}>
           <View style={styles.bookSection}>
-            <View style={styles.cover} />
+            <Image
+              source={{ uri: book.coverImage }}
+              style={styles.cover}
+              resizeMode="cover"
+            />
             <View style={styles.bookInfo}>
               <Text style={styles.title}>{book.title}</Text>
 
               <View style={styles.metaRow}>
                 <Text style={styles.metaLabel}>작가</Text>
-                <Text style={styles.metaValue}>{book.author}</Text>
+                <View style={styles.metaValueWrapper}>
+                  <Text
+                    style={styles.metaValue}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {book.author}
+                  </Text>
+                </View>
               </View>
 
               <View style={styles.metaRow}>
                 <Text style={styles.metaLabel}>출판사</Text>
-                <Text style={styles.metaValue}>{book.publisher}</Text>
+                <View style={styles.metaValueWrapper}>
+                  <Text
+                    style={styles.metaValue}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {book.publisher}
+                  </Text>
+                </View>
               </View>
 
               <View style={styles.metaRow}>
                 <Text style={styles.metaLabel}>페이지</Text>
-                <Text style={styles.metaValue}>{book.pages}</Text>
+                <View style={styles.metaValueWrapper}>
+                  <Text style={styles.metaValue}>{book.pages}</Text>
+                </View>
               </View>
 
               <View style={styles.metaRow}>
                 <Text style={styles.metaLabel}>상태</Text>
-                <Text style={styles.metaValue}>
-                  <Text style={styles.readDot}>•</Text> {book.status}
-                </Text>
+                <View style={styles.metaValueWrapper}>
+                  <Text style={styles.metaValue}>
+                    <Text style={styles.readDot}>•</Text> {book.status}
+                  </Text>
+                </View>
               </View>
 
               <TouchableOpacity
@@ -228,23 +246,31 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   metaRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
     marginBottom: 8,
-    width: 90,
   },
+  
   metaLabel: {
     fontSize: 14,
-    fontFamily: "SUIT-Medium",
-    color: "#666",
+    fontFamily: 'SUIT-Medium',
+    color: '#666',
+    width: 60,
   },
+  
+  metaValueWrapper: {
+    width: 60,
+    alignItems: 'flex-end',
+  },
+  
   metaValue: {
     fontSize: 14,
-    fontFamily: "SUIT-Medium",
-    color: "#666",
-    textAlign: "right",
+    fontFamily: 'SUIT-Medium',
+    color: '#666',
+    textAlign: 'right',
   },
+  
   readDot: {
     fontSize: 14,
     fontFamily: "SUIT-Medium",
