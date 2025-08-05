@@ -52,10 +52,21 @@ const Recommendation = ({ navigation }) => {
         navigation.goBack();
     };
 
+    const handleBookPress = (book) => {
+        navigation.navigate("BookDetail", {
+            bookId: book.id,
+            bookData: book,
+        });
+    };
+
     const renderBookCard = (section) => {
         const book = recommendationData[section];
         return (
-            <TouchableOpacity style={styles.bookCard}>
+            <TouchableOpacity 
+                style={styles.bookCard} 
+                onPress={() => handleBookPress(book)}
+                activeOpacity={0.7}
+            >
                 <View style={styles.bookImagePlaceholder}>
                     <Image 
                         source={{ uri: book.coverImage }} 
