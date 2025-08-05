@@ -5,12 +5,14 @@ import {
     TouchableOpacity,
     Text,
     ScrollView,
+    StatusBar,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import TitleSVG from "../assets/icons/Title.svg";
 import AlarmSVG from "../assets/icons/Alarm.svg";
 import BookCard from "../components/BookCard";
 import { styles } from "../styles/MainScreenStyle";
+import CustomHeader from '../components/CustomHeader';
 
 const MyLibrary = () => {
     const navigation = useNavigation();
@@ -141,17 +143,19 @@ const MyLibrary = () => {
         });
     };
 
+    const handleGoBack = () => {
+        navigation.goBack();
+    };
+
     return (
         <SafeAreaView style={styles.container}>
-            <View style={styles.header}>
-                <View style={styles.leftSection}>
-                    <TitleSVG width={62} height={27} />
-                </View>
-                <TouchableOpacity style={styles.rightSection}>
-                    <AlarmSVG width={24} height={24} />
-                    <View style={styles.badge} />
-                </TouchableOpacity>
-            </View>
+            <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+
+            {/* 헤더 컴포넌트 */}
+            <CustomHeader
+                title="내 서재"
+                onBackPress={handleGoBack}
+            />
 
             {/* 내 서재 */}
             <View style={{ paddingHorizontal: 16 }}>
