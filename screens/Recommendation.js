@@ -1,145 +1,200 @@
 import React from 'react';
 import {
     View,
+    SafeAreaView,
     Text,
     ScrollView,
     TouchableOpacity,
     StyleSheet,
+    StatusBar,
+    Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import LogoSVG from "../assets/icons/logoIcon.svg";
+import CustomHeader from '../components/CustomHeader';
 
 const Recommendation = ({ navigation }) => {
-    const bookData = {
-        title: '노스텔지어, 어느 위험한 감정의 연대기',
-        author: '애그니스 아킬도포스티',
-        description: '문학 작품 해석에 관심이 많은 회원님께 추천',
+    // 섹션별 추천 도서 데이터
+    const recommendationData = {
+        question: {
+            id: 1,
+            title: '노스텔지어, 어느 위험한 감정의 연대기',
+            author: '애그니스 아널드포스터',
+            description: '문학 작품 해석에 관심이 많은 회원님께 추천',
+            publisher: '어크로스',
+            pages: 320,
+            coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/400x0/pdt/9791167741684.jpg',
+            reason: '작가의 의도는?'
+        },
+        answer: {
+            id: 2,
+            title: '운수 좋은 날',
+            author: '현진건',
+            description: '한국 근대문학의 대표작으로 섬세한 묘사를 좋아하는 회원님께 추천',
+            publisher: '소담출판사',
+            pages: 231,
+            coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/400x0/pdt/9788973811755.jpg',
+            reason: '어린 왕자'
+        },
+        keyword: {
+            id: 3,
+            title: '데미안',
+            author: '헤르만 헤세',
+            description: '성장과 변화를 다루는 성장 소설에 관심이 많은 회원님께 추천',
+            publisher: '민음사',
+            pages: 288,
+            coverImage: 'https://minumsa.minumsa.com/wp-content/uploads/bookcover/044_%EB%8D%B0%EB%AF%B8%EC%95%88-300x504.jpg',
+            reason: ['성장', '변화']
+        }
     };
 
     const handleGoBack = () => {
         navigation.goBack();
     };
 
-    const renderBookCard = (section) => (
-        <TouchableOpacity style={styles.bookCard}>
-            <View style={styles.bookImagePlaceholder}>
-                {/* 책 이미지 자리 */}
-            </View>
-            <View style={styles.bookInfo}>
-                <Text style={styles.bookTitle}>{bookData.title}</Text>
-                <Text style={styles.bookAuthor}>{bookData.author}</Text>
-                <Text style={styles.bookDescription}>{bookData.description}</Text>
-            </View>
-        </TouchableOpacity>
-    );
+    const renderBookCard = (section) => {
+        const book = recommendationData[section];
+        return (
+            <TouchableOpacity style={styles.bookCard}>
+                <View style={styles.bookImagePlaceholder}>
+                    <Image 
+                        source={{ uri: book.coverImage }} 
+                        style={styles.bookImage}
+                        resizeMode="cover"
+                    />
+                </View>
+                <View style={styles.bookInfo}>
+                    <Text style={styles.bookTitle}>{book.title}</Text>
+                    <Text style={styles.bookAuthor}>{book.author}</Text>
+                    <Text style={styles.bookDescription}>{book.description}</Text>
+                </View>
+            </TouchableOpacity>
+        );
+    };
 
     return (
-        <View style={styles.container}>
-            {/* 헤더 */}
-            <View style={styles.header}>
-                <TouchableOpacity 
-                    style={styles.backButton}
-                    onPress={handleGoBack}
-                >
-                    <Ionicons name="chevron-back" size={24} color="#333" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>추천 도서</Text>
-            </View>
+        <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+
+            {/* 헤더 컴포넌트 */}
+            <CustomHeader
+                title="추천 도서"
+                onBackPress={handleGoBack}
+            />
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* 상단 안내 메시지 */}
                 <View style={styles.infoCard}>
                     <View style={styles.infoIcon}>
-                        <Ionicons name="chatbubble-ellipses" size={20} color="#4A90E2" />
+                        <LogoSVG width={29} height={29} />
                     </View>
                     <Text style={styles.infoText}>
                         회원님이 참여한 질문과 답변을 분석하여 관심사에 맞는 도서를 추천해드려요.
                     </Text>
                 </View>
 
-                {/* 질문 내용 기반 섹션 */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionQuestion}>🤔 "작가의 의도는?" 을 찾고있어요!</Text>
-                        <Text style={styles.sectionTitle}>질문 내용 기반</Text>
+                {/* 민트색 배경 컨테이너 */}
+                <View style={styles.roundedContainer}>
+                    {/* 질문 내용 기반 섹션 */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <View style={styles.sectionQuestionContainer}>
+                                <View style={styles.highlightTag}>
+                                    <Ionicons name="bulb-outline" size={16} color="#666666" style={{marginRight: 4}} />
+                                    <Text style={styles.highlightText}>"{recommendationData.question.reason}"</Text>
+                                </View>
+                                <Text style={styles.normalText}> 을 참고했어요!</Text>
+                            </View>
+                            <Text style={styles.sectionTitle}>질문 내용 기반</Text>
+                        </View>
+                        {renderBookCard('question')}
                     </View>
-                    {renderBookCard('question')}
-                </View>
 
-                {/* 답변 내용 기반 섹션 */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionQuestion}>📖 운수 좋은 날 에서 가져왔어요!</Text>
-                        <Text style={styles.sectionTitle}>답변 내용 기반</Text>
+                    {/* 답변 내용 기반 섹션 */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <View style={styles.sectionQuestionContainer}>
+                                <View style={styles.highlightTag}>
+                                    <Ionicons name="newspaper-outline" size={16} color="#666666" style={{marginRight: 4}} />
+                                    <Text style={styles.highlightText}>{recommendationData.answer.reason}</Text>
+                                </View>
+                                <Text style={styles.normalText}> 에서 가져왔어요!</Text>
+                            </View>
+                            <Text style={styles.sectionTitle}>답변 내용 기반</Text>
+                        </View>
+                        {renderBookCard('answer')}
                     </View>
-                    {renderBookCard('answer')}
-                </View>
 
-                {/* 자주 언급한 키워드 섹션 */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionQuestion}># 성장 # 변화 에서 찾았어요!</Text>
-                        <Text style={styles.sectionTitle}>자주 언급한 키워드</Text>
+                    {/* 자주 언급한 키워드 섹션 */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <View style={styles.sectionQuestionContainer}>
+                                {recommendationData.keyword.reason.map((keyword, index) => (
+                                    <View key={index} style={styles.highlightTag}>
+                                        <Text style={styles.highlightText}># {keyword}</Text>
+                                    </View>
+                                ))}
+                                <Text style={styles.normalText}> 에 주목했어요!</Text>
+                            </View>
+                            <Text style={styles.sectionTitle}>자주 언급한 키워드</Text>
+                        </View>
+                        {renderBookCard('keyword')}
                     </View>
-                    {renderBookCard('keyword')}
                 </View>
             </ScrollView>
-        </View>
+        </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#E8F6F5',
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingTop: 10,
-        paddingBottom: 16,
         backgroundColor: '#FFFFFF',
-        borderBottomWidth: 1,
-        borderBottomColor: '#E0E0E0',
-    },
-    backButton: {
-        marginRight: 12,
-        padding: 4,
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#333',
     },
     content: {
         flex: 1,
-        paddingHorizontal: 16,
+        paddingHorizontal: 20,
     },
     infoCard: {
         flexDirection: 'row',
+        alignItems: 'center',
         backgroundColor: '#FFFFFF',
-        padding: 16,
-        borderRadius: 16,
-        marginTop: 16,
-        marginBottom: 24,
-        shadowColor: '#4ECDC4',
+        height: 90,
+        paddingHorizontal: 30,
+        borderRadius: 18,
+        borderWidth: 3,
+        borderColor: '#F3FCF9',
+        marginTop: 25,
+        marginBottom: 30,
+        shadowColor: '#90D1BE',
         shadowOffset: {
-            width: 0,
-            height: 4,
+            width: 2,
+            height: 2,
         },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
         elevation: 5,
     },
     infoIcon: {
-        marginRight: 12,
-        marginTop: 2,
+        marginRight: 15,
     },
     infoText: {
         flex: 1,
-        fontSize: 14,
-        color: '#333',
+        fontSize: 16,
+        fontFamily: 'SUIT-Medium',
+        fontWeight: 500,
+        color: '#666',
+        letterSpacing: -0.4,
         lineHeight: 20,
+    },
+    roundedContainer: {
+        backgroundColor: '#F3FCF9',
+        borderTopLeftRadius: 40,
+        borderTopRightRadius: 40,
+        paddingHorizontal: 20,
+        paddingTop: 24,
+        paddingBottom: 32,
+        marginHorizontal: -20,
     },
     section: {
         marginBottom: 32,
@@ -155,56 +210,101 @@ const styles = StyleSheet.create({
         alignSelf: 'flex-start',
         marginBottom: 8,
     },
+    sectionQuestionContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        marginBottom: 4,
+    },
     sectionQuestion: {
         fontSize: 13,
-        color: '#4ECDC4',
         fontWeight: '500',
+        color: '#666666',
+    },
+    highlightTag: {
+        backgroundColor: '#90D1BE40',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        marginRight: 4,
+        marginBottom: 2,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    highlightText: {
+        fontFamily: 'SUIT-SemiBold',
+        fontSize: 16,
+        fontWeight: '600',
+        letterSpacing: -0.4,
+        color: '#666666',
+    },
+    normalText: {
+        fontFamily: 'SUIT-SemiBold',
+        fontSize: 16,
+        fontWeight: '500',
+        letterSpacing: -0.4,
+        color: '#666666',
     },
     sectionTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#333',
+        fontFamily: 'SUIT-SemiBold',
+        fontSize: 20,
+        fontWeight: '600',
+        letterSpacing: -0.45,
+        color: '#0D2525',
     },
     bookCard: {
         flexDirection: 'row',
         backgroundColor: '#FFFFFF',
-        padding: 16,
+        padding: 20,
         borderRadius: 16,
-        shadowColor: '#4ECDC4',
+        shadowColor: '#90D1BE',
         shadowOffset: {
-            width: 0,
-            height: 4,
+            width: 2,
+            height: 2,
         },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
+        shadowOpacity: 0.5,
+        shadowRadius: 4,
         elevation: 4,
     },
     bookImagePlaceholder: {
-        width: 80,
+        width: 90,
         height: 120,
         backgroundColor: '#F0F0F0',
         borderRadius: 8,
-        marginRight: 16,
+        marginRight: 18,
+        overflow: 'hidden',
+    },
+    bookImage: {
+        width: '100%',
+        height: '100%',
     },
     bookInfo: {
         flex: 1,
         justifyContent: 'center',
     },
     bookTitle: {
-        fontSize: 16,
+        fontFamily: 'SUIT-SemiBold',
+        fontSize: 17,
         fontWeight: '600',
-        color: '#333',
+        color: '#0D2525',
+        letterSpacing: -0.4,
         marginBottom: 8,
         lineHeight: 22,
     },
     bookAuthor: {
-        fontSize: 14,
+        fontFamily: 'SUIT-Medeum',
+        fontSize: 15,
         color: '#666',
+        fontWeight: '500',
+        letterSpacing: -0.35,
         marginBottom: 8,
     },
     bookDescription: {
-        fontSize: 14,
-        color: '#888',
+        fontFamily: 'SUIT-Medeum',
+        fontSize: 15,
+        color: '#666',
+        fontWeight: '500',
+        letterSpacing: -0.35,
         lineHeight: 20,
     },
 });
