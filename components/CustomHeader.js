@@ -49,7 +49,9 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontFamily: 'SUIT-SemiBold',
+    fontWeight: 500,
     letterSpacing: -0.4,
+    color: '4B4B4B',
   },
   headerRight: {
     alignItems: 'flex-end',
