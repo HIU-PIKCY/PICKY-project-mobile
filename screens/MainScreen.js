@@ -397,8 +397,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   bookImageContainer: {
-    width: 90,
-    height: 120,
+    width: 93,
+    height: 124,
     backgroundColor: '#F0F0F0',
     borderRadius: 8,
     overflow: 'hidden',
