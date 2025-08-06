@@ -10,28 +10,21 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from '@expo/vector-icons';
-import TitleSVG from "../assets/icons/Title.svg";
+import TitleSVG from "../assets/icons/PICKY.svg";
 import AlarmSVG from "../assets/icons/Alarm.svg";
 
 const MainScreen = () => {
   const navigation = useNavigation();
-  const [showTooltip, setShowTooltip] = useState(false);
 
   // 현재 날짜 기반으로 몇월 몇주차인지 계산
   const getCurrentWeekInfo = () => {
     const now = new Date();
-    const month = now.getMonth() + 1; // 0부터 시작하므로 +1
-    
-    // 해당 월의 첫 번째 날
+    const month = now.getMonth() + 1;
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    // 해당 월의 첫 번째 주의 시작일 (일요일 기준)
     const firstWeekStart = new Date(firstDayOfMonth);
     firstWeekStart.setDate(firstDayOfMonth.getDate() - firstDayOfMonth.getDay());
-    
-    // 현재 날짜까지의 주차 계산
     const diffTime = now.getTime() - firstWeekStart.getTime();
     const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7)) + 1;
-    
     return `${month}월 ${diffWeeks}주차`;
   };
 
@@ -46,7 +39,7 @@ const MainScreen = () => {
   const recommendedBook = {
     id: 1,
     title: "이거 저만 불편한가요",
-    description: "김첨지의 상황에 깊이 공감한 작성자와 몇몇 작성자들의 현재 시대라면 어땠을까 하고 공유한다.",
+    description: "김첨지의 상황에 깊이 공감한 작성자와 몇몇 작성자들이 현재 시대라면 어땠을까 하고 공유한다.",
     tags: ["토픽", "서사불쌍", "무한공감"],
     likes: 12,
     comments: 23,
@@ -102,7 +95,7 @@ const MainScreen = () => {
     }
   ];
 
-  // 알림 정보 데이터 (알림 존재 유무)
+  // 알림 정보 데이터
   const hasNewNotifications = true;
 
   const handleBookPress = (book) => {
@@ -133,11 +126,11 @@ const MainScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       {/* 헤더 */}
-      <View style={styles.header}>
-        <View style={styles.leftSection}>
-          <TitleSVG width={62} height={27} />
+      <View style={styles.headerContainer}>
+        <View style={styles.headerLeft}>
+          <TitleSVG width={80} height={18} />
         </View>
-        <TouchableOpacity style={styles.rightSection} onPress={handleNotificationPress}>
+        <TouchableOpacity style={styles.headerRight} onPress={handleNotificationPress}>
           <AlarmSVG width={24} height={24} />
           {hasNewNotifications && <View style={styles.badge} />}
         </TouchableOpacity>
@@ -147,7 +140,6 @@ const MainScreen = () => {
         {/* 상단 메시지 및 통계 카드 */}
         <TouchableOpacity
           style={styles.combinedCard}
-          onPress={() => setShowTooltip(!showTooltip)}
         >
           <Text style={styles.infoText}>
             {userData.name}님! 오늘도 <Text style={styles.highlightText}>피키</Text>와 함께 의견을 나눠봐요.
@@ -169,7 +161,7 @@ const MainScreen = () => {
 
         {/* 민트색 배경 컨테이너 */}
         <View style={styles.roundedContainer}>
-          {/* 의견 공유가 활발했던 질문이에요! */}
+          {/* 핫 토픽 섹션 */}
           <View style={styles.section}>
             <Text style={styles.sectionSubtitle}>의견 공유가 활발했던 질문이에요!</Text>
             <Text style={styles.sectionTitle}>이번 주 핫 토픽</Text>
@@ -225,7 +217,7 @@ const MainScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* 가장 많이 나온 키워드들 모았어요! */}
+          {/* 키워드 섹션 */}
           <View style={styles.section}>
             <Text style={styles.sectionSubtitle}>가장 많이 나온 키워드들 모았어요!</Text>
             <Text style={styles.sectionTitle}>이번 주 키워드</Text>
@@ -244,13 +236,13 @@ const MainScreen = () => {
             </View>
           </View>
 
-          {/* 질문이 많은 책을 소개해요! */}
+          {/* 최다 질문 섹션 */}
           <View style={styles.section}>
             <Text style={styles.sectionSubtitle}>질문이 많은 책을 소개해요!</Text>
             <Text style={styles.sectionTitle}>이번 주 최다 질문</Text>
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.booksScroll}>
-              {mostQuestionedBooks.map((book, index) => (
+              {mostQuestionedBooks.map((book) => (
                 <TouchableOpacity
                   key={book.id}
                   style={styles.smallBookCard}
@@ -280,29 +272,31 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  header: {
+  headerContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
+    height: 60,
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 10,
+    position: 'relative',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8E8E8',
   },
-  leftSection: {
+  headerLeft: {
     alignItems: 'center',
-    marginRight: 18,
     justifyContent: 'center',
   },
-  rightSection: {
-    position: 'relative',
+  headerRight: {
+    position: 'absolute',
+    right: 20,
   },
   badge: {
     position: 'absolute',
-    top: -2,
-    right: -2,
-    width: 8,
-    height: 8,
-    backgroundColor: '#FF6B6B',
+    top: 1,
+    right: 3.5,
+    width: 7,
+    height: 7,
+    backgroundColor: '#90D1BE',
     borderRadius: 4,
   },
   content: {
@@ -320,10 +314,7 @@ const styles = StyleSheet.create({
     marginTop: 25,
     marginBottom: 30,
     shadowColor: '#90D1BE',
-    shadowOffset: {
-      width: 2,
-      height: 2,
-    },
+    shadowOffset: { width: 2, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
@@ -347,9 +338,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  statItem: {
-    marginHorizontal: 20,
-  },
+  statItem: { marginHorizontal: 20 },
   statsText: {
     fontSize: 17,
     fontFamily: 'SUIT-Medium',
@@ -375,9 +364,7 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     marginHorizontal: -20,
   },
-  section: {
-    marginBottom: 30,
-  },
+  section: { marginBottom: 30 },
   sectionSubtitle: {
     fontSize: 16,
     fontWeight: '500',
@@ -399,13 +386,15 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 16,
     shadowColor: '#90D1BE',
-    shadowOffset: {
-      width: 2,
-      height: 2,
-    },
+    shadowOffset: { width: 2, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 4,
     elevation: 4,
+  },
+  leftSection: {
+    alignItems: 'center',
+    marginRight: 18,
+    justifyContent: 'center',
   },
   bookImageContainer: {
     width: 90,
@@ -415,19 +404,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 8,
   },
-  bookImage: {
-    width: '100%',
-    height: '100%',
-  },
-  bookInfoUnderImage: {
-    alignItems: 'center',
-    width: 90,
-  },
+  bookImage: { width: '100%', height: '100%' },
+  bookInfoUnderImage: { alignItems: 'center', width: 90 },
   bookTitleUnderImage: {
     fontSize: 14,
     fontWeight: '600',
     color: '#666666',
-    textAlign: 'center',
+    textAlign: 'left',
+    width: '100%',
     marginBottom: 5,
     lineHeight: 18,
   },
@@ -435,12 +419,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#888888',
     fontWeight: '500',
-    textAlign: 'center',
+    textAlign: 'left',
+    width: '100%',
   },
-  topicInfo: {
-    flex: 1,
-    justifyContent: 'center',
-  },
+  topicInfo: { flex: 1, justifyContent: 'center' },
   topicTitle: {
     fontFamily: 'SUIT-SemiBold',
     fontSize: 17,
@@ -458,14 +440,11 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginBottom: 8,
   },
-  aiSummaryText: {
-    fontSize: 12,
-    color: '#FFF',
-    fontWeight: '500',
-  },
+  aiSummaryText: { fontSize: 12, color: '#FFF', fontWeight: '500' },
   topicSummary: {
     fontFamily: 'SUIT-Medium',
-    fontSize: 16,
+    fontSize: 15,
+    textAlign: 'justify',
     color: '#666',
     fontWeight: '400',
     letterSpacing: -0.35,
@@ -485,25 +464,10 @@ const styles = StyleSheet.create({
     marginRight: 6,
     marginBottom: 2,
   },
-  tagText: {
-    fontSize: 13,
-    color: '#666666',
-    fontWeight: '400',
-  },
-  engagement: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  engagementItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  engagementText: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 4,
-  },
+  tagText: { fontSize: 13, color: '#666666', fontWeight: '400' },
+  engagement: { flexDirection: 'row', alignItems: 'center' },
+  engagementItem: { flexDirection: 'row', alignItems: 'center', marginRight: 16 },
+  engagementText: { fontSize: 14, color: '#666', marginLeft: 4 },
   keywordsContainer: {
     position: 'relative',
     height: 120,
@@ -573,8 +537,8 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   smallBookImageContainer: {
-    width: 80,
-    height: 110,
+    width: 90,
+    height: 120,
     backgroundColor: '#F0F0F0',
     borderRadius: 8,
     marginBottom: 8,
@@ -589,7 +553,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#666',
-    textAlign: 'center',
+    textAlign: 'left',
+    width: '100%',
     marginBottom: 5,
     lineHeight: 18,
   },
@@ -598,7 +563,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     color: '#888',
-    textAlign: 'center',
+    textAlign: 'left',
+    width: '100%',
     marginBottom: 2,
   },
   questionCount: {
