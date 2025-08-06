@@ -5,6 +5,7 @@ import NavTab from './navigation/NavTab';
 import BookDetail from './screens/BookDetail';
 import QuestionDetail from './screens/QuestionDetail';
 import ProfileManagement from './screens/ProfileManagement';
+import ActivityManagement from './screens/ActivityManagement';
 
 const Stack = createStackNavigator();
 
@@ -20,6 +21,7 @@ export default function App() {
         <Stack.Screen name="BookDetail" component={BookDetail} />
         <Stack.Screen name="QuestionDetail" component={QuestionDetail} />
         <Stack.Screen name="ProfileManagement" component={ProfileManagement} />
+        <Stack.Screen name="ActivityManagement" component={ActivityManagement} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -40,8 +40,7 @@ const MyMenu = ({ navigation }) => {
                 navigation.navigate('ProfileManagement');
                 break;
             case 2: // 내 활동 관리
-                // 추후 내 활동 관리 페이지 구현 시 추가
-                console.log('내 활동 관리 페이지로 이동');
+                navigation.navigate('ActivityManagement')
                 break;
             default:
                 break;
