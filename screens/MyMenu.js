@@ -34,8 +34,26 @@ const MyMenu = ({ navigation }) => {
         navigation.goBack();
     };
 
+    const handleMenuPress = (menuId) => {
+        switch (menuId) {
+            case 1: // 프로필 관리
+                navigation.navigate('ProfileManagement');
+                break;
+            case 2: // 내 활동 관리
+                // 추후 내 활동 관리 페이지 구현 시 추가
+                console.log('내 활동 관리 페이지로 이동');
+                break;
+            default:
+                break;
+        }
+    };
+
     const renderMenuItem = (item) => (
-        <TouchableOpacity key={item.id} style={styles.menuItem}>
+        <TouchableOpacity 
+            key={item.id} 
+            style={styles.menuItem}
+            onPress={() => handleMenuPress(item.id)}
+        >
             <View style={styles.menuItemLeft}>
                 <Ionicons name={item.icon} size={24} color="#666666" />
                 <Text style={styles.menuItemText}>{item.title}</Text>
