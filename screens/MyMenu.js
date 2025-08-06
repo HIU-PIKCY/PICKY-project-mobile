@@ -6,7 +6,8 @@ import {
     ScrollView,
     TouchableOpacity,
     SafeAreaView,
-    StatusBar
+    StatusBar,
+    Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import CustomHeader from '../components/CustomHeader';
@@ -16,6 +17,7 @@ const MyMenu = ({ navigation }) => {
     const userData = {
         nickname: '키피럽',
         email: 'keepitup@example.com',
+        profileImage: 'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=150&h=150&fit=crop&crop=center',
         stats: {
             totalBooks: 12,
             questions: 8,
@@ -24,9 +26,8 @@ const MyMenu = ({ navigation }) => {
     };
 
     const menuItems = [
-        { id: 1, title: '내 프로필', icon: 'person-outline' },
-        { id: 2, title: '내 서재 관리', icon: 'library-outline' },
-        { id: 3, title: '질문/답변 관리', icon: 'chatbubble-outline' },
+        { id: 1, title: '프로필 관리', icon: 'person-outline' },
+        { id: 2, title: '내 활동 관리', icon: 'stats-chart-outline' },
     ];
 
     const handleGoBack = () => {
@@ -39,7 +40,7 @@ const MyMenu = ({ navigation }) => {
                 <Ionicons name={item.icon} size={24} color="#666666" />
                 <Text style={styles.menuItemText}>{item.title}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#DBDBDB" />
+            <Ionicons name="chevron-forward" size={20} color="#4B4B4B" />
         </TouchableOpacity>
     );
 
@@ -58,7 +59,10 @@ const MyMenu = ({ navigation }) => {
                 <View style={styles.profileSection}>
                     <View style={styles.profileInfo}>
                         <View style={styles.avatar}>
-                            <Ionicons name="person" size={40} color="#666" />
+                            <Image 
+                                source={{ uri: userData.profileImage }}
+                                style={styles.profileImage}
+                            />
                         </View>
                         <View style={styles.profileText}>
                             <Text style={styles.userName}>{userData.nickname}</Text>
@@ -109,7 +113,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     profileSection: {
-        padding: 20,
+        padding: 24,
     },
     profileInfo: {
         flexDirection: 'row',
@@ -124,20 +128,28 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 15,
+        overflow: 'hidden',
+    },
+    profileImage: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
     },
     profileText: {
         flex: 1,
     },
     userName: {
-        fontSize: 18,
+        fontSize: 19,
         fontFamily: 'SUIT-SemiBold',
+        fontWeight: 500,
         letterSpacing: -0.4,
         color: '#0D2525',
-        marginBottom: 4,
+        marginBottom: 6,
     },
     userEmail: {
-        fontSize: 14,
+        fontSize: 15,
         fontFamily: 'SUIT-Medium',
+        letterSpacing: -0.3,
         color: '#666666',
     },
     statsContainer: {
@@ -146,21 +158,26 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#F3FCF9',
         borderRadius: 12,
-        paddingVertical: 16,
+        paddingVertical: 20,
+        marginTop: 10,
     },
     statItem: {
         alignItems: 'center',
         flex: 1,
     },
     statNumber: {
-        fontSize: 18,
+        fontSize: 20,
         fontFamily: 'SUIT-SemiBold',
         fontWeight: 500,
         color: '#0D2525',
+        letterSpacing: -0.45,
         marginBottom: 4,
     },
     statLabel: {
-        fontSize: 12,
+        fontFamily: 'SUIT-SemiBold',
+        fontWeight: 400,
+        fontSize: 15,
+        letterSpacing: -0.35,
         color: '#666666',
     },
     statDivider: {
@@ -169,7 +186,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#E8E8E8',
     },
     menuSection: {
-        paddingHorizontal: 20,
+        paddingHorizontal: 24,
+        marginBottom: 20,
     },
     menuItem: {
         flexDirection: 'row',
@@ -182,27 +200,30 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     menuItemText: {
-        fontSize: 14,
+        fontSize: 15,
         fontFamily: 'SUIT-Medium',
-        color: '#666',
+        fontWeight: 500,
+        color: '#0D2525',
+        letterSpacing: -0.3,
         marginLeft: 12,
     },
     logoutSection: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
+        paddingHorizontal: 24,
+        paddingVertical: 20,
     },
     logoutButton: {
-        width: 150,
-        margin: 20,
+        width: '90%',
+        alignSelf: 'center',
         paddingVertical: 16,
         borderRadius: 8,
         backgroundColor: '#0D2525',
         alignItems: 'center',
     },
     logoutText: {
-        fontSize: 14,
+        fontSize: 16,
         fontFamily: 'SUIT-Medium',
+        fontWeight: 500,
+        letterSpacing: -0.35,
         color: '#FFFFFF',
     },
 });
