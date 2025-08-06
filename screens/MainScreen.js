@@ -113,7 +113,7 @@ const MainScreen = () => {
   };
 
   const handleNotificationPress = () => {
-    navigation.navigate("Notifications");
+    navigation.navigate("NotificationPage");
   };
 
   const handleHotTopicPress = () => {
