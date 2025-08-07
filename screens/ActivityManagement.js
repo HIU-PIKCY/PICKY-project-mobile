@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -6,79 +6,150 @@ import {
     ScrollView,
     TouchableOpacity,
     SafeAreaView,
-    StatusBar
+    StatusBar,
+    ActivityIndicator,
+    RefreshControl
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import CustomHeader from '../components/CustomHeader';
 
 const ActivityManagement = ({ navigation }) => {
     const [activeTab, setActiveTab] = useState('question'); // 'question', 'answer', 'like'
+    const [loading, setLoading] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+    
+    const [data, setData] = useState({
+        questions: [],
+        answers: [],
+        likes: []
+    });
+
+    // 더미 데이터 - 실제 구현 시 API 호출로 대체
+    const dummyData = {
+        questions: [
+            {
+                id: 1,
+                title: '작가의 의도는?',
+                author: '현진건',
+                book: '운수 좋은 놈',
+                likes: 5,
+                comments: 3,
+                views: 11,
+                createdAt: '2024-01-15T10:30:00Z'
+            },
+            {
+                id: 2,
+                title: '주인공의 심리 변화 과정은?',
+                author: '현진건',
+                book: '운수 좋은 놈',
+                likes: 8,
+                comments: 5,
+                views: 23,
+                createdAt: '2024-01-14T15:20:00Z'
+            }
+        ],
+        answers: [
+            {
+                id: 1,
+                title: '작가는 이런 의미로 표현한 것 같아요.',
+                questionTitle: '[작가의 의도는?]',
+                questionId: 1,
+                likes: 5,
+                comments: 3,
+                views: 11,
+                createdAt: '2024-01-15T11:30:00Z'
+            },
+            {
+                id: 2,
+                title: '제 생각에는 주인공의 심리상태를 잘 지켜봐야 한다고 생각해요.',
+                questionTitle: '[등장인물 분석 도움]',
+                questionId: 3,
+                likes: 12,
+                comments: 7,
+                views: 45,
+                createdAt: '2024-01-14T16:45:00Z'
+            }
+        ],
+        likes: [
+            {
+                id: 1,
+                title: '캐릭터 디자인할 때 주의점?',
+                author: '질문',
+                time: '3일 전',
+                likes: 15,
+                comments: 8,
+                views: 32,
+                type: 'question',
+                originalId: 5,
+                likedAt: '2024-01-12T14:20:00Z'
+            },
+            {
+                id: 2,
+                title: '스토리 구조를 탄탄하게 만들려면 이렇게 저렇게 해야 좋은 이야기가 될 것 같아요',
+                author: '답변',
+                time: '1주 전',
+                likes: 23,
+                comments: 12,
+                views: 67,
+                type: 'answer',
+                originalId: 8,
+                likedAt: '2024-01-08T09:15:00Z'
+            }
+        ]
+    };
+
+    useEffect(() => {
+        loadData();
+    }, [activeTab]);
+
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            // const response = await apiService.getUserActivity(userId, activeTab);
+            // setData(prev => ({ ...prev, [activeTab]: response.data }));
+            
+            // 더미 데이터 시뮬레이션
+            setTimeout(() => {
+                setData(dummyData);
+                setLoading(false);
+            }, 500);
+        } catch (error) {
+            console.error('데이터 로딩 실패:', error);
+            setLoading(false);
+        }
+    };
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await loadData();
+        setRefreshing(false);
+    };
 
     const handleGoBack = () => {
         navigation.goBack();
     };
 
-    // 더미 데이터
-    const questionData = [
-        {
-            id: 1,
-            title: '작가의 의도는?',
-            author: '현진건',
-            book: '운수 좋은 놈',
-            likes: 5,
-            comments: 3,
-            views: 11
-        },
-        {
-            id: 2,
-            title: '작가의 의도는?',
-            author: '현진건',
-            book: '운수 좋은 놈',
-            likes: 5,
-            comments: 3,
-            views: 11
+    const handleItemPress = (item, type) => {
+        // 타입별로 다른 화면으로 네비게이션
+        switch (type) {
+            case 'question':
+                navigation.navigate('QuestionDetail', { questionId: item.id });
+                break;
+            case 'answer':
+                navigation.navigate('QuestionDetail', { 
+                    questionId: item.questionId, 
+                    highlightAnswerId: item.id 
+                });
+                break;
+            case 'like':
+                const targetScreen = 'QuestionDetail';
+                const params = item.type === 'question' 
+                    ? { questionId: item.originalId }
+                    : { questionId: item.originalId, highlightAnswerId: item.id };
+                navigation.navigate(targetScreen, params);
+                break;
         }
-    ];
-
-    const answerData = [
-        {
-            id: 1,
-            title: '작가는 이런 의미로 표현한 것 같아요.',
-            questionTitle: '[작가의 의도는?]',
-            likes: 5,
-            comments: 3,
-            views: 11
-        },
-        {
-            id: 2,
-            title: '제 생각에는 주인공의 심리상태를 잘 지켜봐야 한다고 생각해요.',
-            questionTitle: '[등장인물 분석 도움]',
-            likes: 5,
-            comments: 3,
-            views: 11
-        }
-    ];
-
-    const likeData = [
-        {
-            id: 1,
-            title: '캐릭터 디자인할 때 주의점?',
-            author: '질문',
-            time: '3일 전',
-            likes: 5,
-            comments: 3,
-            views: 11
-        },
-        {
-            id: 2,
-            title: '스토리 구조를 탄탄하게 만들려면 이렇게 저렇게 해야 좋은 이야기가 될 것 같아요',
-            author: '답변',
-            time: '1주 전',
-            likes: 5,
-            comments: 3,
-            views: 11
-        }
-    ];
+    };
 
     const renderTabButton = (tabKey, title) => (
         <TouchableOpacity
@@ -100,8 +171,12 @@ const ActivityManagement = ({ navigation }) => {
     );
 
     const renderActivityItem = (item, type) => (
-        <View key={item.id} style={styles.activityItemWrapper}>
-            <TouchableOpacity style={styles.activityItem}>
+        <View key={`${type}-${item.id}`} style={styles.activityItemWrapper}>
+            <TouchableOpacity 
+                style={styles.activityItem}
+                onPress={() => handleItemPress(item, type)}
+                activeOpacity={0.7}
+            >
                 <Text style={styles.activityTitle} numberOfLines={1} ellipsizeMode="tail">
                     {item.title}
                 </Text>
@@ -134,15 +209,35 @@ const ActivityManagement = ({ navigation }) => {
     const getCurrentData = () => {
         switch (activeTab) {
             case 'question':
-                return questionData;
+                return data.questions || [];
             case 'answer':
-                return answerData;
+                return data.answers || [];
             case 'like':
-                return likeData;
+                return data.likes || [];
             default:
                 return [];
         }
     };
+
+    // 빈 아이템 시 화면
+    const renderEmptyState = () => (
+        <View style={styles.emptyContainer}>
+            <Ionicons 
+                name={
+                    activeTab === 'question' ? 'help-circle-outline' :
+                    activeTab === 'answer' ? 'chatbubble-outline' :
+                    'heart-outline'
+                } 
+                size={48} 
+                color="#CCCCCC" 
+            />
+            <Text style={styles.emptyText}>
+                {activeTab === 'question' ? '작성한 질문이 없습니다' :
+                 activeTab === 'answer' ? '작성한 답변이 없습니다' :
+                 '좋아요한 게시물이 없습니다'}
+            </Text>
+        </View>
+    );
 
     return (
         <SafeAreaView style={styles.container}>
@@ -162,11 +257,32 @@ const ActivityManagement = ({ navigation }) => {
                 </View>
 
                 {/* 활동 목록 */}
-                <ScrollView style={styles.activityList} showsVerticalScrollIndicator={false}>
-                    {getCurrentData().map((item) => 
-                        renderActivityItem(item, activeTab)
-                    )}
-                </ScrollView>
+                {loading && getCurrentData().length === 0 ? (
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color="#90D1BE" />
+                    </View>
+                ) : (
+                    <ScrollView 
+                        style={styles.activityList} 
+                        showsVerticalScrollIndicator={false}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={refreshing}
+                                onRefresh={onRefresh}
+                                colors={['#90D1BE']}
+                                tintColor="#90D1BE"
+                            />
+                        }
+                    >
+                        {getCurrentData().length > 0 ? (
+                            getCurrentData().map((item) => 
+                                renderActivityItem(item, activeTab)
+                            )
+                        ) : (
+                            renderEmptyState()
+                        )}
+                    </ScrollView>
+                )}
             </View>
         </SafeAreaView>
     );
@@ -219,6 +335,23 @@ const styles = StyleSheet.create({
     },
     activityList: {
         flex: 1,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingTop: 100,
+    },
+    emptyText: {
+        fontSize: 16,
+        fontFamily: 'SUIT-Medium',
+        color: '#999999',
+        marginTop: 16,
     },
     activityItemWrapper: {
         width: '100%',

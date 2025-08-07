@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -8,7 +8,9 @@ import {
   TextInput,
   ScrollView,
   Modal,
-  Image
+  Image,
+  ActivityIndicator,
+  Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -16,11 +18,195 @@ import CustomHeader from '../components/CustomHeader';
 
 const SearchBookScreen = ({ navigation }) => {
   const [searchType, setSearchType] = useState('통합검색');
-  const [sortType, setSortType] = useState('');
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // 개선된 더미 데이터 - 실제 구현 시 API 호출로 대체
+  const dummyBooksData = [
+    { 
+      id: 1, 
+      title: '운수 좋은 날', 
+      author: '현진건', 
+      publisher: '소담', 
+      coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/400x0/pdt/9788973811755.jpg',
+      isbn: '9788973811755',
+      publishedYear: 2020
+    },
+    { 
+      id: 2, 
+      title: '메밀꽃 필 무렵', 
+      author: '이효석', 
+      publisher: '블랙독', 
+      coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/200x0/pdt/480D240734740.jpg',
+      isbn: '9788980734742',
+      publishedYear: 2019
+    },
+    { 
+      id: 3, 
+      title: '봄봄', 
+      author: '김유정', 
+      publisher: '희원북스', 
+      coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/200x0/pdt/480D250329600.jpg',
+      isbn: '9788950329607',
+      publishedYear: 2021
+    },
+    { 
+      id: 4, 
+      title: '사랑손님과 어머니', 
+      author: '주요섭', 
+      publisher: '문학과지성사', 
+      coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/200x0/pdt/9788932023267.jpg',
+      isbn: '9788932023267',
+      publishedYear: 2018
+    },
+    { 
+      id: 5, 
+      title: '금따는 콩밭', 
+      author: '김유정', 
+      publisher: '작가와비평', 
+      coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/200x0/pdt/4801155920115.jpg',
+      isbn: '9801155920115',
+      publishedYear: 2020
+    },
+    { 
+      id: 6, 
+      title: '운수 좋은 날', 
+      author: '현진건', 
+      publisher: '칼로스', 
+      coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791198761286.jpg',
+      isbn: '9791198761286',
+      publishedYear: 2023
+    },
+    { 
+      id: 7, 
+      title: '태백산맥', 
+      author: '조정래', 
+      publisher: '해냄', 
+      coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/200x0/pdt/9788965749271.jpg',
+      isbn: '9788965749271',
+      publishedYear: 2017
+    },
+    { 
+      id: 8, 
+      title: '토지 1(1부 1권)', 
+      author: '박경리', 
+      publisher: '다산책방', 
+      coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791130699462.jpg',
+      isbn: '9791130699462',
+      publishedYear: 2022
+    },
+    { 
+      id: 9, 
+      title: '토지 2(1부 2권)', 
+      author: '박경리', 
+      publisher: '다산책방', 
+      coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791130699479.jpg',
+      isbn: '9791130699479',
+      publishedYear: 2022
+    },
+    { 
+      id: 10, 
+      title: '토지 7(2부 3권)', 
+      author: '박경리', 
+      publisher: '다산책방', 
+      coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791130699530.jpg',
+      isbn: '9791130699530',
+      publishedYear: 2022
+    },
+    { 
+      id: 11, 
+      title: '노스텔지어, 어느 위험한 감정의 연대기', 
+      author: '애그니스 아널드포스터', 
+      publisher: '문학동네', 
+      coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/400x0/pdt/9791167741684.jpg',
+      isbn: '9791167741684',
+      publishedYear: 2023
+    },
+    { 
+      id: 12, 
+      title: '1984', 
+      author: '조지 오웰', 
+      publisher: '민음사', 
+      coverImage: 'https://image.aladin.co.kr/product/41/89/letslook/S062933637_f.jpg',
+      isbn: '9788937462337',
+      publishedYear: 2016
+    },
+    { 
+      id: 13, 
+      title: '해리포터와 마법사의 돌', 
+      author: 'J.K. 롤링', 
+      publisher: '문학과지성사', 
+      coverImage: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcToSmMU_mIWeKIo8u84VpMgF7kPMR9SjVN2ug&s',
+      isbn: '9788932917245',
+      publishedYear: 2019
+    },
+    { 
+      id: 14, 
+      title: '어린왕자', 
+      author: '생텍쥐페리', 
+      publisher: '열린책들', 
+      coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/400x0/pdt/9791191200157.jpg',
+      isbn: '9791191200157',
+      publishedYear: 2021
+    },
+    { 
+      id: 15, 
+      title: '데미안', 
+      author: '헤르만 헤세', 
+      publisher: '민음사', 
+      coverImage: 'https://minumsa.minumsa.com/wp-content/uploads/bookcover/044_%EB%8D%B0%EB%AF%B8%EC%95%88-300x504.jpg',
+      isbn: '9788937460449',
+      publishedYear: 2015
+    },
+    { 
+      id: 16, 
+      title: '미움받을 용기', 
+      author: '기시미 이치로', 
+      publisher: '인플루엔셜', 
+      coverImage: 'https://image.aladin.co.kr/product/4846/30/letslook/S572535350_fl.jpg',
+      isbn: '9788960883505',
+      publishedYear: 2014
+    },
+    { 
+      id: 17, 
+      title: '코스모스', 
+      author: '칼 세이건', 
+      publisher: '사이언스북스', 
+      coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/200x0/pdt/9788983711892.jpg',
+      isbn: '9788983711892',
+      publishedYear: 2018
+    },
+    { 
+      id: 18, 
+      title: '사피엔스', 
+      author: '유발 하라리', 
+      publisher: '김영사', 
+      coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/200x0/pdt/9788934992042.jpg',
+      isbn: '9788934992042',
+      publishedYear: 2015
+    },
+    { 
+      id: 19, 
+      title: '백년동안의 고독', 
+      author: '가브리엘 가르시아 마르케스', 
+      publisher: '문학사상', 
+      coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/400x0/pdt/9788970126937.jpg',
+      isbn: '9788970126937',
+      publishedYear: 2017
+    },
+    { 
+      id: 20, 
+      title: '죄와 벌', 
+      author: '표도르 도스토옙스키', 
+      publisher: '민음사', 
+      coverImage: 'https://image.yes24.com/goods/96668213/XL',
+      isbn: '9788937460821',
+      publishedYear: 2020
+    },
+  ];
   
   // 화면에 포커스될 때마다 검색 상태 초기화
   useFocusEffect(
@@ -30,6 +216,7 @@ const SearchBookScreen = ({ navigation }) => {
       setSearchResults([]);
       setHasSearched(false);
       setDropdownVisible(false);
+      setLoading(false);
     }, [])
   );
   
@@ -39,74 +226,70 @@ const SearchBookScreen = ({ navigation }) => {
     { value: '제목검색', label: '제목검색' },
     { value: '작가검색', label: '작가검색' }
   ];
-  
-  const allBooks = [
-    { id: 1, title: '운수 좋은 날', author: '현진건', publisher: '소담', coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/400x0/pdt/9788973811755.jpg'},
-    { id: 2, title: '메밀꽃 필 무렵', author: '이효석', publisher: '블랙독', coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/200x0/pdt/480D240734740.jpg' },
-    { id: 3, title: '봄봄', author: '김유정', publisher: '희원북스 ', coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/200x0/pdt/480D250329600.jpg' },
-    { id: 4, title: '사랑손님과 어머니', author: '주요섭', publisher: '문학과지성사', coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/200x0/pdt/9788932023267.jpg' },
-    { id: 5, title: '금따는 콩밭', author: '김유정', publisher: '작가와비평 ', coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/200x0/pdt/4801155920115.jpg' },
-    { id: 6, title: '운수 좋은 날', author: '현진건', publisher: '칼로스', coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791198761286.jpg' },
-    { id: 7, title: '태백산맥', author: '조정래', publisher: '해냄', coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/200x0/pdt/9788965749271.jpg' },
-    { id: 8, title: '토지 1(1부 1권)', author: '박경리', publisher: '다산책방', coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791130699462.jpg' },
-    { id: 9, title: '토지 2(1부 2권)', author: '박경리', publisher: '다산책방', coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791130699479.jpg' },
-    { id: 10, title: '토지 7(2부 3권)', author: '박경리', publisher: '다산책방', coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791130699530.jpg' },
-    { id: 11, title: '노스텔지어, 어느 위험한 감정의 연대기', author: '애그니스 아널드포스터', publisher: '문학동네', coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/400x0/pdt/9791167741684.jpg' },
-    { id: 12, title: '1984', author: '조지 오웰', publisher: '민음사', coverImage: 'https://image.aladin.co.kr/product/41/89/letslook/S062933637_f.jpg' },
-    { id: 13, title: '해리포터와 마법사의 돌', author: 'J.K. 롤링', publisher: '문학과지성사', coverImage: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcToSmMU_mIWeKIo8u84VpMgF7kPMR9SjVN2ug&s' },
-    { id: 14, title: '어린왕자', author: '생텍쥐페리', publisher: '열린책들', coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/400x0/pdt/9791191200157.jpg' },
-    { id: 15, title: '데미안', author: '헤르만 헤세', publisher: '민음사', coverImage: 'https://minumsa.minumsa.com/wp-content/uploads/bookcover/044_%EB%8D%B0%EB%AF%B8%EC%95%88-300x504.jpg' },
-    { id: 16, title: '미움받을 용기', author: '기시미 이치로', publisher: '인플루엔셜', coverImage: 'https://image.aladin.co.kr/product/4846/30/letslook/S572535350_fl.jpg?MW=750&WG=3&WS=100&&WO=30&WF=-15x15&WU=https://image.aladin.co.kr/img/common/openmarket_ci.png' },
-    { id: 17, title: '코스모스', author: '칼 세이건', publisher: '사이언스북스', coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/200x0/pdt/9788983711892.jpg' },
-    { id: 18, title: '사피엔스', author: '유발 하라리', publisher: '김영사', coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/200x0/pdt/9788934992042.jpg' },
-    { id: 19, title: '백년동안의 고독', author: '가브리엘 가르시아 마르케스', publisher: '문학사상', coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/400x0/pdt/9788970126937.jpg' },
-    { id: 20, title: '죄와 벌', author: '표도르 도스토옙스키', publisher: '민음사', coverImage: 'https://image.yes24.com/goods/96668213/XL' },
-
-  ];
 
   const handleSearchTypeSelect = (type) => {
     setSearchType(type);
     setDropdownVisible(false);
   };
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!searchQuery.trim()) {
       // 검색어가 없으면 검색하지 않음
       return;
     }
 
+    setLoading(true);
     setHasSearched(true);
     
-    const query = searchQuery.toLowerCase().trim();
-    let filteredBooks = [];
+    try {
+      // 실제 구현 시 API 호출
+      // const searchTypeMap = {
+      //   '통합검색': 'all',
+      //   '제목검색': 'title',
+      //   '작가검색': 'author'
+      // };
+      // const response = await apiService.searchBooks(searchQuery, searchTypeMap[searchType]);
+      // setSearchResults(response.data.books);
+      
+      // 더미 데이터 검색 시뮬레이션
+      setTimeout(() => {
+        const query = searchQuery.toLowerCase().trim();
+        let filteredBooks = [];
 
-    switch (searchType) {
-      case '제목검색':
-        filteredBooks = allBooks.filter(book => 
-          book.title.toLowerCase().includes(query)
-        );
-        break;
-      case '작가검색':
-        filteredBooks = allBooks.filter(book => 
-          book.author.toLowerCase().includes(query)
-        );
-        break;
-      case '통합검색':
-      default:
-        filteredBooks = allBooks.filter(book => 
-          book.title.toLowerCase().includes(query) || 
-          book.author.toLowerCase().includes(query)
-        );
-        break;
+        switch (searchType) {
+          case '제목검색':
+            filteredBooks = dummyBooksData.filter(book => 
+              book.title.toLowerCase().includes(query)
+            );
+            break;
+          case '작가검색':
+            filteredBooks = dummyBooksData.filter(book => 
+              book.author.toLowerCase().includes(query)
+            );
+            break;
+          case '통합검색':
+          default:
+            filteredBooks = dummyBooksData.filter(book => 
+              book.title.toLowerCase().includes(query) || 
+              book.author.toLowerCase().includes(query)
+            );
+            break;
+        }
+
+        setSearchResults(filteredBooks);
+        setLoading(false);
+      }, 500);
+    } catch (error) {
+      console.error('검색 실패:', error);
+      setLoading(false);
+      Alert.alert('검색 오류', '검색 중 오류가 발생했습니다.');
     }
-
-    setSearchResults(filteredBooks);
   };
 
   const handleBookPress = (book) => {
     navigation.navigate('BookDetail', { 
       bookId: book.id,
-      book: book 
+      bookData: book 
     });
   };
 
@@ -200,9 +383,7 @@ const SearchBookScreen = ({ navigation }) => {
       {/* Header */}
       <CustomHeader 
         title="도서 검색"
-        onBackPress={() => {
-          navigation.goBack();
-        }}
+        onBackPress={() => navigation.goBack()}
       />
 
       {/* Search Section */}
@@ -211,6 +392,7 @@ const SearchBookScreen = ({ navigation }) => {
           <TouchableOpacity 
             style={styles.searchTypeButton}
             onPress={() => setDropdownVisible(true)}
+            activeOpacity={0.7}
           >
             <Ionicons name="chevron-down-outline" size={16} color="#666666" />
             <Text style={styles.searchTypeText}>{searchType}</Text>
@@ -224,36 +406,43 @@ const SearchBookScreen = ({ navigation }) => {
               value={searchQuery}
               onChangeText={setSearchQuery}
               onSubmitEditing={handleSearch}
+              editable={!loading}
             />
           </View>
           
           <TouchableOpacity 
-            style={styles.searchButton}
+            style={[styles.searchButton, loading && styles.searchButtonDisabled]}
             onPress={handleSearch}
+            disabled={loading}
+            activeOpacity={0.7}
           >
-            <Ionicons name="search" size={20} color="#666666" />
+            {loading ? (
+              <ActivityIndicator size="small" color="#666666" />
+            ) : (
+              <Ionicons name="search" size={20} color="#666666" />
+            )}
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Results Section */}
       <View style={styles.resultsSection}>
-        {hasSearched && (
+        {hasSearched && !loading && (
           <View style={styles.resultsHeader}>
             <Text style={styles.resultsTitle}>
               검색 결과 ({searchResults.length})
             </Text>
-            {searchResults.length > 0 && (
-              <TouchableOpacity style={styles.filterButton}>
-                <Ionicons name="options-outline" size={18} color="#666666" />
-              </TouchableOpacity>
-            )}
           </View>
         )}
 
         {/* Content */}
         <ScrollView style={styles.contentContainer} showsVerticalScrollIndicator={false}>
-          {!hasSearched ? (
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#90D1BE" />
+              <Text style={styles.loadingText}>검색 중...</Text>
+            </View>
+          ) : !hasSearched ? (
             renderEmptyState()
           ) : searchResults.length === 0 ? (
             renderNoResults()
@@ -315,6 +504,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  searchButtonDisabled: {
+    opacity: 0.6,
+  },
   resultsSection: {
     flex: 1,
     paddingHorizontal: 16,
@@ -331,11 +523,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333333',
   },
-  filterButton: {
-    padding: 4,
-  },
   contentContainer: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 100,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#666666',
+    marginTop: 12,
   },
   booksGrid: {
     flexDirection: 'row',
