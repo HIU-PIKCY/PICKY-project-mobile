@@ -302,7 +302,7 @@ const MainScreen = () => {
       >
         {/* 상단 메시지 및 통계 카드 */}
         {userData && (
-          <TouchableOpacity style={styles.combinedCard}>
+          <View style={styles.combinedCard}>
             <Text style={styles.infoText}>
               {userData.name}님! 오늘도 <Text style={styles.highlightText}>피키</Text>와 함께 의견을 나눠봐요.
             </Text>
@@ -319,7 +319,7 @@ const MainScreen = () => {
                 </Text>
               </View>
             </View>
-          </TouchableOpacity>
+          </View>
         )}
 
         {/* 민트색 배경 컨테이너 */}
