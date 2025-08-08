@@ -144,7 +144,9 @@ const Recommendation = ({ navigation }) => {
                 <StatusBar barStyle="dark-content" backgroundColor="#fff" />
                 <CustomHeader title="추천 도서" onBackPress={handleGoBack} />
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#90D1BE" />
+                    <LogoSVG width={60} height={60} style={styles.loadingLogo} />
+                    <ActivityIndicator size="large" color="#90D1BE" style={styles.loadingSpinner} />
+                    <Text style={styles.loadingText}>회원님에게 딱 맞는 추천 도서를 찾고 있어요...</Text>
                 </View>
             </SafeAreaView>
         );
@@ -264,6 +266,19 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    loadingLogo: {
+        marginBottom: 20,
+    },
+    loadingSpinner: {
+        marginBottom: 20,
+    },
+    loadingText: {
+        fontSize: 16,
+        fontFamily: 'SUIT-Medium',
+        color: '#666666',
+        textAlign: 'center',
+        lineHeight: 22,
     },
     emptyContainer: {
         flex: 1,
