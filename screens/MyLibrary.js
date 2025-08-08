@@ -10,8 +10,6 @@ import {
     RefreshControl,
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
-import TitleSVG from "../assets/icons/Title.svg";
-import AlarmSVG from "../assets/icons/Alarm.svg";
 import BookCard from "../components/BookCard";
 import { styles } from "../styles/MainScreenStyle";
 import CustomHeader from '../components/CustomHeader';
