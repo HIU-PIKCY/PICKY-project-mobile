@@ -33,7 +33,7 @@ const BookDetail = ({ navigation, route }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [processing, setProcessing] = useState(false); // 추가/삭제 처리 중
 
-  // 개선된 더미 데이터 - 실제 구현 시 API 호출로 대체
+  // 더미 데이터 - 실제 구현 시 API 호출로 대체
   const dummyBookData = {
     id: bookData?.id || 1,
     title: bookData?.title || "운수 좋은 날",
@@ -653,7 +653,7 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     borderWidth: 1,
-    borderColor: "#DA1717",
+    borderColor: "#F87171",
     paddingHorizontal: 20,
     paddingVertical: 5,
     borderRadius: 4,
@@ -672,7 +672,7 @@ const styles = StyleSheet.create({
   },
   deleteText: {
     fontSize: 12,
-    color: "#DA1717",
+    color: "#F87171",
     fontFamily: "SUIT-Medium",
   },
   addText: {

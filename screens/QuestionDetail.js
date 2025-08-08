@@ -34,7 +34,7 @@ const QuestionDetail = ({ navigation, route }) => {
     // route params에서 질문 데이터와 책 데이터 가져오기
     const { questionData, bookData, questionId } = route.params || {};
 
-    // 개선된 더미 데이터 - 실제 구현 시 API 호출로 대체
+    // 더미 데이터 - 실제 구현 시 API 호출로 대체
     const dummyQuestion = {
         id: questionData?.id || questionId,
         title: questionData?.content || "작가의 의도는?",
@@ -418,7 +418,7 @@ const QuestionDetail = ({ navigation, route }) => {
 
                     {/* 답변 섹션 */}
                     <View style={styles.answersSectionHeader}>
-                        <Text style={styles.answersTitle}>답변 ({question.answersCount})</Text>
+                        <Text style={styles.answersTitle}>답변  ({question.answersCount})</Text>
                     </View>
                     
                     <View style={styles.answersSection}>
@@ -697,10 +697,10 @@ const styles = StyleSheet.create({
         color: '#666',
     },
     answerText: {
-        fontSize: 12,
+        fontSize: 12.5,
         fontFamily: 'SUIT-Medium',
         letterSpacing: -0.3,
-        lineHeight: 16,
+        lineHeight: 17,
         color: '#666',
     },
     answerInputContainer: {

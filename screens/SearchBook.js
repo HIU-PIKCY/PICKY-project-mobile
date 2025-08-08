@@ -24,7 +24,7 @@ const SearchBookScreen = ({ navigation }) => {
   const [hasSearched, setHasSearched] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // 개선된 더미 데이터 - 실제 구현 시 API 호출로 대체
+  // 더미 데이터 - 실제 구현 시 API 호출로 대체
   const dummyBooksData = [
     { 
       id: 1, 

@@ -22,7 +22,7 @@ const NotificationPage = ({ navigation }) => {
     const [refreshing, setRefreshing] = useState(false);
     const [readNotifications, setReadNotifications] = useState([]);
 
-    // 더미 알림 데이터 - 실제 구현 시 API 호출로 대체
+    // 알림 데이터 - 실제 구현 시 API 호출로 대체
     const dummyNotifications = {
         notifications: [
             {

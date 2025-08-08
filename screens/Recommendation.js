@@ -21,7 +21,7 @@ const Recommendation = ({ navigation }) => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
-    // 개선된 더미 데이터 - 실제 구현 시 API 호출로 대체
+    // 더미 데이터 - 실제 구현 시 API 호출로 대체
     const dummyRecommendationData = {
         questionBased: {
             book: {
@@ -144,7 +144,6 @@ const Recommendation = ({ navigation }) => {
                 <StatusBar barStyle="dark-content" backgroundColor="#fff" />
                 <CustomHeader title="추천 도서" onBackPress={handleGoBack} />
                 <View style={styles.loadingContainer}>
-                    <LogoSVG width={60} height={60} style={styles.loadingLogo} />
                     <ActivityIndicator size="large" color="#90D1BE" style={styles.loadingSpinner} />
                     <Text style={styles.loadingText}>회원님에게 딱 맞는 추천 도서를 찾고 있어요...</Text>
                 </View>

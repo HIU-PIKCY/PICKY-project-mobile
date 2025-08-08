@@ -219,7 +219,7 @@ const ActivityManagement = ({ navigation }) => {
         }
     };
 
-    // 빈 아이템 시 화면
+    // 빈 아이템일 시 화면
     const renderEmptyState = () => (
         <View style={styles.emptyContainer}>
             <Ionicons 

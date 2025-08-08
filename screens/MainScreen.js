@@ -26,7 +26,7 @@ const MainScreen = () => {
   const [mostQuestionedBooks, setMostQuestionedBooks] = useState([]);
   const [hasNewNotifications, setHasNewNotifications] = useState(false);
 
-  // 개선된 더미 데이터 - 실제 구현 시 API 호출로 대체
+  // 더미 데이터 - 실제 구현 시 API 호출로 대체
   const dummyData = {
     userData: {
       name: "키피럽",
@@ -228,7 +228,7 @@ const MainScreen = () => {
 
   const handleHotTopicPress = () => {
     if (hotTopic) {
-      // 핫 토픽은 원본 질문으로 이동
+      // 핫 토픽 누르면 원본 질문으로 이동
       navigation.navigate("QuestionDetail", {
         questionId: hotTopic.questionId,
         questionData: {

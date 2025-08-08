@@ -649,10 +649,10 @@ const styles = StyleSheet.create({
     color: "#666666",
   },
   previewBody: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: "SUIT-Medium",
     color: "#666",
-    lineHeight: 16,
+    lineHeight: 17.5,
     letterSpacing: -0.25,
   },
   submitButton: {

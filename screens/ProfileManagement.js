@@ -35,7 +35,7 @@ const ProfileManagement = ({ navigation }) => {
     const [nicknameAvailable, setNicknameAvailable] = useState(null);
     const [nicknameCheckTimeout, setNicknameCheckTimeout] = useState(null);
 
-    // 개선된 더미 데이터 - 실제 구현 시 API 호출로 대체
+    // 더미 데이터 - 실제 구현 시 API 호출로 대체
     const dummyUserData = {
         email: 'keepitup@example.com',
         userId: 'kipiluv',
@@ -92,6 +92,7 @@ const ProfileManagement = ({ navigation }) => {
         navigation.goBack();
     };
 
+    // 임시 프로필 사진 선택 화면
     const handleImagePicker = () => {
         Alert.alert(
             '프로필 사진 변경',
@@ -244,7 +245,6 @@ const ProfileManagement = ({ navigation }) => {
         if (checkingNickname) {
             return (
                 <View style={styles.nicknameStatusContainer}>
-                    <ActivityIndicator size="small" color="#90D1BE" />
                     <Text style={styles.checkingText}>확인 중...</Text>
                 </View>
             );
@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
     checkingText: {
         fontSize: 14,
         fontFamily: 'SUIT-Medium',
-        color: '#666666',
+        color: '#90D1BE',
         marginLeft: 4,
     },
     disabledInput: {

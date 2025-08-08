@@ -22,7 +22,7 @@ const MyMenu = ({ navigation }) => {
     const [userData, setUserData] = useState(null);
     const [loggingOut, setLoggingOut] = useState(false);
 
-    // 개선된 더미 데이터 - 실제 구현 시 API 호출로 대체
+    // 더미 데이터 - 실제 구현 시 API 호출로 대체
     const dummyUserData = {
         nickname: '키피럽',
         email: 'keepitup@example.com',

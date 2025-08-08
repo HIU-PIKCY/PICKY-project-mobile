@@ -28,7 +28,7 @@ const MyLibrary = () => {
         "읽기 예정": 0
     });
 
-    // 개선된 더미 데이터 - 실제 구현 시 API 호출로 대체
+    // 더미 데이터 - 실제 구현 시 API 호출로 대체
     const dummyLibraryData = {
         books: [
             {
@@ -186,13 +186,13 @@ const MyLibrary = () => {
         setRefreshing(false);
     };
 
-    // 필터에 따른 도서 목록 필터링 (프론트엔드에서 처리)
+    // 필터에 따른 도서 목록 필터링
     const filteredBooks = books.filter((book) => {
         if (selectedFilter === "전체") return true;
         return book.status === selectedFilter;
     });
 
-    // 필터 버튼 텍스트에 개수 포함 (프론트엔드에서 처리)
+    // 필터 버튼 텍스트에 개수 포함 - ex: 전체 11
     const getFilterText = (filter) => {
         if (filter === "전체") {
             const totalCount = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
