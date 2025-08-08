@@ -6,10 +6,11 @@ export const styles = StyleSheet.create({
     marginRight: '8%',
     marginBottom: 20,
     alignItems: 'flex-start',
+    height: 195,
   },
   coverWrapper: {
     width: '100%',
-    height: 120,
+    height: 135,
     marginBottom: 8,
     borderRadius: 4,
     overflow: 'hidden',
@@ -46,6 +47,10 @@ export const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 4,
     alignSelf: 'center',
+    position: 'absolute',
+    bottom: 0,
+    minHeight: 18,
+    justifyContent: 'center',
   },
   readingBadge: {
     borderWidth: 0.5,
