@@ -27,6 +27,9 @@ const QuestionDetail = ({ navigation, route }) => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [submittingAnswer, setSubmittingAnswer] = useState(false);
+    const [generatingAI, setGeneratingAI] = useState(false);
+    const [generatedAIAnswer, setGeneratedAIAnswer] = useState(null);
+    const [submittingAIAnswer, setSubmittingAIAnswer] = useState(false);
 
     // route params에서 질문 데이터와 책 데이터 가져오기
     const { questionData, bookData, questionId } = route.params || {};
@@ -173,6 +176,77 @@ const QuestionDetail = ({ navigation, route }) => {
 
     const handleAnswerLike = async (answerId) => {
         // 답변 좋아요 기능 제거됨
+    };
+
+    const handleAIAnswerGenerate = async () => {
+        if (!question) return;
+
+        setGeneratingAI(true);
+        
+        try {
+            // 실제 구현 시 API 호출
+            // const response = await apiService.generateAIAnswer(question.id);
+            // setGeneratedAIAnswer(response.data.content);
+
+            // 더미 AI 답변 생성 시뮬레이션
+            const dummyAIAnswers = [
+                "이 작품에서 작가는 사회적 현실의 아이러니를 통해 인간의 운명에 대한 깊은 성찰을 보여주고 있습니다. 주인공의 상황을 통해 당시 서민층의 삶의 애환과 무력감을 드러내면서도, 동시에 그들의 강인한 생명력을 부각시키고 있다고 생각됩니다.",
+                "작품 속 인물들의 행동과 심리를 분석해보면, 작가가 의도한 메시지는 단순한 비극이 아닌 인간 존재의 복합적 의미에 대한 탐구라고 볼 수 있습니다. 특히 제목이 주는 반어적 효과는 독자로 하여금 진정한 행복의 의미에 대해 생각하게 만듭니다.",
+                "이 소설의 핵심은 현실과 이상 사이의 괴리, 그리고 그 속에서 살아가는 인간의 모습을 사실적으로 그려낸 것입니다. 작가는 객관적이고 냉정한 시선으로 당시 사회의 모순을 지적하면서도, 인간에 대한 따뜻한 시선을 잃지 않고 있습니다."
+            ];
+            
+            setTimeout(() => {
+                const randomAnswer = dummyAIAnswers[Math.floor(Math.random() * dummyAIAnswers.length)];
+                setGeneratedAIAnswer(randomAnswer);
+                setGeneratingAI(false);
+            }, 2000);
+        } catch (error) {
+            console.error('AI 답변 생성 실패:', error);
+            setGeneratingAI(false);
+            Alert.alert('오류', 'AI 답변 생성 중 오류가 발생했습니다.');
+        }
+    };
+
+    const handleSubmitAIAnswer = async () => {
+        if (!generatedAIAnswer) return;
+
+        setSubmittingAIAnswer(true);
+        try {
+            // 실제 구현 시 API 호출
+            // const response = await apiService.createAnswer(question.id, { 
+            //     content: generatedAIAnswer,
+            //     isAI: true 
+            // });
+            
+            // 더미 AI 답변 등록
+            const newAIAnswerData = {
+                id: Date.now(),
+                content: generatedAIAnswer,
+                author: 'AI 답변',
+                isAI: true,
+                createdAt: new Date().toISOString()
+            };
+            
+            setAnswers(prev => [...prev, newAIAnswerData]);
+            setQuestion(prev => ({
+                ...prev,
+                answersCount: prev.answersCount + 1
+            }));
+            
+            // AI 답변 상태 초기화
+            setGeneratedAIAnswer(null);
+            setSubmittingAIAnswer(false);
+            
+            Alert.alert('등록 완료', 'AI 답변이 등록되었습니다.');
+        } catch (error) {
+            console.error('AI 답변 등록 실패:', error);
+            setSubmittingAIAnswer(false);
+            Alert.alert('등록 실패', 'AI 답변 등록 중 오류가 발생했습니다.');
+        }
+    };
+
+    const handleCancelAIAnswer = () => {
+        setGeneratedAIAnswer(null);
     };
 
     const handleSubmitAnswer = async () => {
@@ -354,44 +428,89 @@ const QuestionDetail = ({ navigation, route }) => {
 
                 {/* 답변 작성 섹션 */}
                 <View style={styles.answerInputContainer}>
-                    <View style={styles.inputRow}>
-                        <View style={styles.userIconSmall}>
-                            <Ionicons name="person" size={16} color="#666" />
+                    {generatingAI ? (
+                        <View style={styles.aiGeneratingContainer}>
+                            <ActivityIndicator size="large" color="#90D1BE" />
+                            <Text style={styles.aiGeneratingText}>AI가 답변을 생성하고 있습니다...</Text>
                         </View>
-                        <TextInput
-                            style={styles.answerInput}
-                            placeholder="나의 생각을 공유해요!"
-                            value={newAnswer}
-                            onChangeText={setNewAnswer}
-                            multiline
-                            maxLength={500}
-                            textAlignVertical="top"
-                            editable={!submittingAnswer}
-                        />
-                    </View>
-                    <View style={styles.inputActions}>
-                        <TouchableOpacity 
-                            style={styles.aiAnswerButton}
-                            disabled={submittingAnswer}
-                        >
-                            <MintStar />
-                            <Text style={styles.aiAnswerButtonText}>AI 답변 생성</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity 
-                            style={[
-                                styles.submitButton,
-                                submittingAnswer && styles.submitButtonDisabled
-                            ]} 
-                            onPress={handleSubmitAnswer}
-                            disabled={submittingAnswer}
-                        >
-                            {submittingAnswer ? (
-                                <ActivityIndicator size="small" color="#4B4B4B" />
-                            ) : (
-                                <Text style={styles.submitButtonText}>답변 등록</Text>
-                            )}
-                        </TouchableOpacity>
-                    </View>
+                    ) : generatedAIAnswer ? (
+                        <View style={styles.aiAnswerPreviewContainer}>
+                            <View style={styles.aiAnswerHeader}>
+                                <View style={styles.aiAnswerIconContainer}>
+                                    <View style={styles.aiIcon}>
+                                        <Text style={styles.aiIconText}>AI</Text>
+                                    </View>
+                                    <Text style={styles.aiAnswerAuthor}>AI 답변</Text>
+                                </View>
+                            </View>
+                            <Text style={styles.aiAnswerContent}>{generatedAIAnswer}</Text>
+                            <View style={styles.aiAnswerActions}>
+                                <TouchableOpacity
+                                    style={styles.aiCancelButton}
+                                    onPress={handleCancelAIAnswer}
+                                    disabled={submittingAIAnswer}
+                                >
+                                    <Text style={styles.aiCancelButtonText}>취소</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[
+                                        styles.aiSubmitButton,
+                                        submittingAIAnswer && styles.aiSubmitButtonDisabled
+                                    ]}
+                                    onPress={handleSubmitAIAnswer}
+                                    disabled={submittingAIAnswer}
+                                >
+                                    {submittingAIAnswer ? (
+                                        <ActivityIndicator size="small" color="#4B4B4B" />
+                                    ) : (
+                                        <Text style={styles.aiSubmitButtonText}>답변 등록</Text>
+                                    )}
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    ) : (
+                        <>
+                            <View style={styles.inputRow}>
+                                <View style={styles.userIconSmall}>
+                                    <Ionicons name="person" size={16} color="#666" />
+                                </View>
+                                <TextInput
+                                    style={styles.answerInput}
+                                    placeholder="나의 생각을 공유해요!"
+                                    value={newAnswer}
+                                    onChangeText={setNewAnswer}
+                                    multiline
+                                    maxLength={500}
+                                    textAlignVertical="top"
+                                    editable={!submittingAnswer}
+                                />
+                            </View>
+                            <View style={styles.inputActions}>
+                                <TouchableOpacity 
+                                    style={styles.aiAnswerButton}
+                                    onPress={handleAIAnswerGenerate}
+                                    disabled={submittingAnswer}
+                                >
+                                    <MintStar />
+                                    <Text style={styles.aiAnswerButtonText}>AI 답변 생성</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                    style={[
+                                        styles.submitButton,
+                                        submittingAnswer && styles.submitButtonDisabled
+                                    ]} 
+                                    onPress={handleSubmitAnswer}
+                                    disabled={submittingAnswer}
+                                >
+                                    {submittingAnswer ? (
+                                        <ActivityIndicator size="small" color="#4B4B4B" />
+                                    ) : (
+                                        <Text style={styles.submitButtonText}>답변 등록</Text>
+                                    )}
+                                </TouchableOpacity>
+                            </View>
+                        </>
+                    )}
                 </View>
             </KeyboardAvoidingView>
         </SafeAreaView>
@@ -573,15 +692,15 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     authorName: {
-        fontSize: 11,
+        fontSize: 10,
         fontFamily: 'SUIT-Medium',
         color: '#666',
     },
     answerText: {
-        fontSize: 13,
+        fontSize: 12,
         fontFamily: 'SUIT-Medium',
         letterSpacing: -0.3,
-        lineHeight: 18,
+        lineHeight: 16,
         color: '#666',
     },
     answerInputContainer: {
@@ -653,6 +772,79 @@ const styles = StyleSheet.create({
         opacity: 0.6,
     },
     submitButtonText: {
+        fontSize: 14,
+        fontFamily: 'SUIT-Regular',
+        letterSpacing: -0.35,
+        color: '#4B4B4B',
+    },
+    aiGeneratingContainer: {
+        paddingVertical: 30,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    aiGeneratingText: {
+        marginTop: 12,
+        fontSize: 16,
+        color: '#666666',
+        fontFamily: 'SUIT-Medium',
+    },
+    aiAnswerPreviewContainer: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 8,
+        padding: 15,
+        marginVertical: 10,
+        borderWidth: 0.5,
+        borderColor: '#E8E8E8',
+    },
+    aiAnswerHeader: {
+        marginBottom: 10,
+    },
+    aiAnswerIconContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    aiAnswerAuthor: {
+        fontSize: 11,
+        fontFamily: 'SUIT-Medium',
+        color: '#666',
+    },
+    aiAnswerContent: {
+        fontSize: 13,
+        fontFamily: 'SUIT-Medium',
+        letterSpacing: -0.3,
+        lineHeight: 18,
+        color: '#666',
+        marginBottom: 15,
+    },
+    aiAnswerActions: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        gap: 8,
+    },
+    aiCancelButton: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 6,
+        borderWidth: 0.5,
+        borderColor: '#E8E8E8',
+    },
+    aiCancelButtonText: {
+        fontSize: 14,
+        fontFamily: 'SUIT-Regular',
+        letterSpacing: -0.35,
+        color: '#999999',
+    },
+    aiSubmitButton: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 6,
+        borderWidth: 0.5,
+        borderColor: '#E8E8E8',
+    },
+    aiSubmitButtonDisabled: {
+        opacity: 0.6,
+    },
+    aiSubmitButtonText: {
         fontSize: 14,
         fontFamily: 'SUIT-Regular',
         letterSpacing: -0.35,
