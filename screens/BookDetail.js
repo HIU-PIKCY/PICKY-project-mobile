@@ -42,6 +42,7 @@ const BookDetail = ({ navigation, route }) => {
     pages: 231,
     coverImage: bookData?.coverImage || null,
     isInLibrary: bookData?.status ? true : false, // status가 있으면 내 서재에 있음
+    readingStatus: bookData?.status || "읽는 중", // 기본값: "읽는 중"
   };
 
   const dummyQuestions = {
@@ -190,11 +191,15 @@ const BookDetail = ({ navigation, route }) => {
     setProcessing(true);
     try {
       // 실제 구현 시 API 호출
-      // await apiService.addBookToLibrary(userId, book.id, "읽기 예정");
+      // await apiService.addBookToLibrary(userId, book.id, "읽는 중");
       
       // 더미 추가 시뮬레이션
       setTimeout(() => {
-        setBook(prev => ({ ...prev, isInLibrary: true }));
+        setBook(prev => ({ 
+          ...prev, 
+          isInLibrary: true,
+          readingStatus: "읽는 중" // 등록 시 기본값
+        }));
         setProcessing(false);
         Alert.alert("등록 완료", "도서가 내 서재에 등록되었습니다.");
       }, 1000);
@@ -228,7 +233,11 @@ const BookDetail = ({ navigation, route }) => {
       
       // 더미 삭제 시뮬레이션
       setTimeout(() => {
-        setBook(prev => ({ ...prev, isInLibrary: false }));
+        setBook(prev => ({ 
+          ...prev, 
+          isInLibrary: false,
+          readingStatus: null // 삭제 시 상태 제거
+        }));
         setProcessing(false);
         Alert.alert("삭제 완료", "도서가 내 서재에서 삭제되었습니다.");
       }, 1000);
@@ -236,6 +245,35 @@ const BookDetail = ({ navigation, route }) => {
       console.error('도서 삭제 실패:', error);
       setProcessing(false);
       Alert.alert("삭제 실패", "도서 삭제 중 오류가 발생했습니다.");
+    }
+  };
+
+  const handleReadingStatusChange = () => {
+    const statusOptions = ["읽는 중", "완독"];
+    Alert.alert(
+      "읽기 상태 변경",
+      "변경할 상태를 선택해주세요",
+      [
+        { text: "취소", style: "cancel" },
+        ...statusOptions.map(status => ({
+          text: status,
+          onPress: () => changeReadingStatus(status)
+        }))
+      ]
+    );
+  };
+
+  const changeReadingStatus = async (newStatus) => {
+    try {
+      // 실제 구현 시 API 호출
+      // await apiService.updateReadingStatus(book.id, newStatus);
+      
+      // 더미 상태 변경
+      setBook(prev => ({ ...prev, readingStatus: newStatus }));
+      Alert.alert("상태 변경", `읽기 상태가 "${newStatus}"로 변경되었습니다.`);
+    } catch (error) {
+      console.error('읽기 상태 변경 실패:', error);
+      Alert.alert("변경 실패", "읽기 상태 변경 중 오류가 발생했습니다.");
     }
   };
 
@@ -370,6 +408,21 @@ const BookDetail = ({ navigation, route }) => {
                 <Text style={styles.metaLabel}>페이지</Text>
                 <Text style={styles.metaValue}>{book.pages}</Text>
               </View>
+
+              {/* 내 서재에 등록된 경우에만 읽기 상태 표시 */}
+              {book.isInLibrary && (
+                <TouchableOpacity 
+                  style={styles.metaRow}
+                  onPress={handleReadingStatusChange}
+                >
+                  <Text style={styles.metaLabel}>상태</Text>
+                  <View style={styles.statusContainer}>
+                    <Text style={styles.readDot}>•</Text>
+                    <Text style={styles.metaValue}>{book.readingStatus}</Text>
+                    <Ionicons name="chevron-down" size={16} color="#666" style={styles.statusIcon} />
+                  </View>
+                </TouchableOpacity>
+              )}
 
               {book.isInLibrary ? (
                 // 내 서재에서 삭제 버튼
@@ -584,11 +637,19 @@ const styles = StyleSheet.create({
     color: "#666",
     flex: 1,
   },
+  statusContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
   readDot: {
     fontSize: 14,
     fontFamily: "SUIT-Medium",
     color: "#90D1BE",
     marginRight: 4,
+  },
+  statusIcon: {
+    marginLeft: 4,
   },
   deleteButton: {
     borderWidth: 1,
