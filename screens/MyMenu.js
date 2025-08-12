@@ -10,11 +10,14 @@ import {
     Image,
     ActivityIndicator,
     RefreshControl,
-    Alert
+    Alert,
+    BackHandler
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import CustomHeader from '../components/CustomHeader';
+import { useAuth } from '../AuthContext';
 
 const MyMenu = ({ navigation }) => {
     const [loading, setLoading] = useState(true);
@@ -35,15 +38,15 @@ const MyMenu = ({ navigation }) => {
     };
 
     const menuItems = [
-        { 
-            id: 1, 
-            title: '프로필 관리', 
+        {
+            id: 1,
+            title: '프로필 관리',
             icon: 'person-outline',
             route: 'ProfileManagement'
         },
-        { 
-            id: 2, 
-            title: '내 활동 관리', 
+        {
+            id: 2,
+            title: '내 활동 관리',
             icon: 'stats-chart-outline',
             route: 'ActivityManagement'
         },
@@ -62,10 +65,14 @@ const MyMenu = ({ navigation }) => {
 
     const loadUserProfile = async () => {
         try {
-            // 실제 구현 시 API 호출
-            // const response = await apiService.getUserProfile(userId);
-            // setUserData(response.data);
-            
+            // 실제 구현 시 AsyncStorage에서 사용자 정보 가져오기
+            // const userString = await AsyncStorage.getItem('user');
+            // if (userString) {
+            //     const user = JSON.parse(userString);
+            //     const response = await apiService.getUserProfile(user.id);
+            //     setUserData(response.data);
+            // }
+
             // 더미 데이터 시뮬레이션
             setTimeout(() => {
                 setUserData(dummyUserData);
@@ -99,30 +106,34 @@ const MyMenu = ({ navigation }) => {
             "정말로 로그아웃 하시겠습니까?",
             [
                 { text: "취소", style: "cancel" },
-                { 
-                    text: "로그아웃", 
+                {
+                    text: "로그아웃",
                     style: "destructive",
-                    onPress: confirmLogout 
+                    onPress: confirmLogout
                 }
             ]
         );
     };
 
+    const { logout } = useAuth();
+
     const confirmLogout = async () => {
         setLoggingOut(true);
         try {
-            // 실제 구현 시 API 호출
-            // await apiService.logout(refreshToken);
+            console.log('로그아웃 시작...');
             
-            // 더미 로그아웃 시뮬레이션
-            setTimeout(() => {
-                setLoggingOut(false);
-                // 로그인 화면으로 이동하거나 앱 상태 초기화
-                navigation.reset({
-                    index: 0,
-                    routes: [{ name: 'Login' }],
-                });
-            }, 1000);
+            // AuthContext의 logout 함수 사용
+            const success = await logout();
+            
+            setLoggingOut(false);
+            
+            if (success) {
+                console.log('로그아웃 완료');
+                Alert.alert('로그아웃 완료', '로그아웃되었습니다.');
+            } else {
+                Alert.alert("오류", "로그아웃 중 오류가 발생했습니다.");
+            }
+            
         } catch (error) {
             console.error('로그아웃 실패:', error);
             setLoggingOut(false);
@@ -130,9 +141,10 @@ const MyMenu = ({ navigation }) => {
         }
     };
 
+
     const renderMenuItem = (item) => (
-        <TouchableOpacity 
-            key={item.id} 
+        <TouchableOpacity
+            key={item.id}
             style={styles.menuItem}
             onPress={() => handleMenuPress(item)}
             activeOpacity={0.7}
@@ -148,7 +160,7 @@ const MyMenu = ({ navigation }) => {
     const renderProfileImage = () => {
         if (userData?.profileImage) {
             return (
-                <Image 
+                <Image
                     source={{ uri: userData.profileImage }}
                     style={styles.profileImage}
                     onError={() => {
@@ -192,8 +204,8 @@ const MyMenu = ({ navigation }) => {
                 onBackPress={handleGoBack}
             />
 
-            <ScrollView 
-                style={styles.content} 
+            <ScrollView
+                style={styles.content}
                 showsVerticalScrollIndicator={false}
                 refreshControl={
                     <RefreshControl
@@ -243,7 +255,7 @@ const MyMenu = ({ navigation }) => {
 
                         {/* 로그아웃 버튼 */}
                         <View style={styles.logoutSection}>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={[
                                     styles.logoutButton,
                                     loggingOut && styles.logoutButtonDisabled
