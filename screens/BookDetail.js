@@ -23,95 +23,23 @@ const BookDetail = ({ navigation, route }) => {
   const writeSheetRef = useRef(null);
   const screenHeight = Dimensions.get("window").height;
 
-  // route params에서 책 데이터 가져오기
-  const { bookData } = route.params || {};
+  // 서버 API URL
+  const API_BASE_URL = 'http://13.124.86.254';
+
+  // route params에서 ISBN과 기본 책 데이터 가져오기
+  const { isbn, bookData } = route.params || {};
   
   const [book, setBook] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [selectedSort, setSelectedSort] = useState('latest');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [processing, setProcessing] = useState(false); // 추가/삭제 처리 중
-
-  // 더미 데이터 - 실제 구현 시 API 호출로 대체
-  const dummyBookData = {
-    id: bookData?.id || 1,
-    title: bookData?.title || "운수 좋은 날",
-    author: bookData?.author || "현진건",
-    publisher: "소담",
-    pages: 231,
-    coverImage: bookData?.coverImage || null,
-    isInLibrary: bookData?.status ? true : false, // status가 있으면 내 서재에 있음
-    readingStatus: bookData?.status || "읽는 중", // 기본값: "읽는 중"
-  };
-
-  const dummyQuestions = {
-    1: [ // 운수 좋은 날
-      {
-        id: 1,
-        author: "AI",
-        content: "작가의 의도는?",
-        views: 122,
-        answers: 2,
-        likes: 5,
-        isAI: true,
-        page: 220,
-        createdAt: "2024-01-15T10:30:00Z"
-      },
-      {
-        id: 2,
-        author: "키티키티",
-        content: "이 책 너무 어렵네요..",
-        views: 27,
-        answers: 6,
-        likes: 11,
-        isAI: false,
-        page: 45,
-        createdAt: "2024-01-14T15:20:00Z"
-      },
-    ],
-    2: [ // 노스텔지어
-      {
-        id: 3,
-        author: "AI",
-        content: "감정의 변화 과정이 어떻게 그려지나요?",
-        views: 89,
-        answers: 3,
-        likes: 12,
-        isAI: true,
-        page: 67,
-        createdAt: "2024-01-13T14:15:00Z"
-      },
-    ],
-    3: [ // 1984
-      {
-        id: 4,
-        author: "AI",
-        content: "빅브라더의 상징적 의미는?",
-        views: 156,
-        answers: 8,
-        likes: 23,
-        isAI: true,
-        page: 89,
-        createdAt: "2024-01-12T16:45:00Z"
-      },
-      {
-        id: 5,
-        author: "독서왕",
-        content: "현실과 너무 비슷해서 무서워요",
-        views: 45,
-        answers: 12,
-        likes: 18,
-        isAI: false,
-        page: 234,
-        createdAt: "2024-01-11T12:30:00Z"
-      },
-    ],
-  };
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     loadBookData();
-  }, [bookData]);
+  }, [isbn]);
 
   useEffect(() => {
     if (book) {
@@ -120,42 +48,85 @@ const BookDetail = ({ navigation, route }) => {
   }, [book, selectedSort]);
 
   const loadBookData = async () => {
+    if (!isbn) {
+      setError("ISBN 정보가 없습니다.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      // 실제 구현 시 API 호출
-      // const response = await apiService.getBookDetail(bookData.id);
-      // setBook(response.data);
+      setLoading(true);
+      setError(null);
       
-      // 더미 데이터 시뮬레이션
-      setTimeout(() => {
-        setBook(dummyBookData);
-        setLoading(false);
-      }, 300);
+      console.log('책 상세 정보 요청:', `${API_BASE_URL}/api/books/${isbn}`);
+      
+      const response = await fetch(`${API_BASE_URL}/api/books/${isbn}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
+
+      console.log('응답 상태:', response.status);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('책 상세 응답:', data);
+
+      if (data.isSuccess && data.result) {
+        const bookDetail = data.result;
+        setBook({
+          id: bookDetail.isbn, // ISBN을 ID로 사용
+          title: bookDetail.title || "제목 없음",
+          authors: bookDetail.authors || ["작가 미상"],
+          publisher: bookDetail.publisher || "출판사 미상",
+          pageCount: bookDetail.pageCount || 0,
+          publishedAt: bookDetail.publishedAt || "",
+          coverImage: bookDetail.coverImage || null,
+          isInLibrary: bookDetail.isInLibrary || false,
+          readingStatus: bookDetail.readingStatus || null,
+        });
+      } else {
+        throw new Error(data.message || '책 정보를 가져올 수 없습니다.');
+      }
     } catch (error) {
-      console.error('도서 정보 로딩 실패:', error);
+      console.error('책 상세 정보 가져오기 실패:', error);
+      setError(error.message);
+      
+      // 에러 시 기본 데이터라도 표시
+      if (bookData) {
+        setBook({
+          id: bookData.isbn || isbn,
+          title: bookData.title || "제목 없음",
+          authors: bookData.authors || ["작가 미상"],
+          publisher: bookData.publisher || "출판사 미상",
+          pageCount: bookData.pageCount || 0,
+          publishedAt: bookData.publishedAt || "",
+          coverImage: bookData.coverImage || null,
+          isInLibrary: false,
+          readingStatus: null,
+        });
+      }
+    } finally {
       setLoading(false);
     }
   };
 
   const loadQuestions = async () => {
     try {
-      // 실제 구현 시 API 호출
-      // const response = await apiService.getBookQuestions(book.id, selectedSort);
-      // setQuestions(response.data.questions);
+      // 실제 구현 시 질문 API 호출
+      // const response = await fetch(`${API_BASE_URL}/api/books/${book.id}/questions?sort=${selectedSort}`);
+      // const data = await response.json();
+      // if (data.isSuccess) {
+      //   setQuestions(data.result);
+      // }
       
-      // 더미 데이터 시뮬레이션
-      const bookQuestions = dummyQuestions[book.id] || [];
-      
-      // 정렬 적용 (프론트엔드에서 처리)
-      const sortedQuestions = [...bookQuestions].sort((a, b) => {
-        if (selectedSort === 'latest') {
-          return new Date(b.createdAt) - new Date(a.createdAt);
-        } else if (selectedSort === 'recommended') {
-          return b.likes - a.likes;
-        }
-        return 0;
-      });
-      
-      setQuestions(sortedQuestions);
+      // 현재는 더미 데이터 사용
+      const dummyQuestions = [];
+      setQuestions(dummyQuestions);
     } catch (error) {
       console.error('질문 목록 로딩 실패:', error);
     }
@@ -163,7 +134,7 @@ const BookDetail = ({ navigation, route }) => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([loadBookData(), book && loadQuestions()]);
+    await loadBookData();
     setRefreshing(false);
   };
 
@@ -190,23 +161,41 @@ const BookDetail = ({ navigation, route }) => {
   const confirmAddToLibrary = async () => {
     setProcessing(true);
     try {
-      // 실제 구현 시 API 호출
-      // await apiService.addBookToLibrary(userId, book.id, "읽는 중");
+      console.log('도서 추가 요청:', `${API_BASE_URL}/api/library/books`);
       
-      // 더미 추가 시뮬레이션
-      setTimeout(() => {
+      const response = await fetch(`${API_BASE_URL}/api/library/books`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          isbn: book.id,
+          readingStatus: "읽는 중"
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.isSuccess) {
         setBook(prev => ({ 
           ...prev, 
           isInLibrary: true,
-          readingStatus: "읽는 중" // 등록 시 기본값
+          readingStatus: "읽는 중"
         }));
-        setProcessing(false);
         Alert.alert("등록 완료", "도서가 내 서재에 등록되었습니다.");
-      }, 1000);
+      } else {
+        throw new Error(data.message || '등록에 실패했습니다.');
+      }
     } catch (error) {
       console.error('도서 추가 실패:', error);
-      setProcessing(false);
       Alert.alert("등록 실패", "도서 등록 중 오류가 발생했습니다.");
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -228,23 +217,36 @@ const BookDetail = ({ navigation, route }) => {
   const confirmRemoveFromLibrary = async () => {
     setProcessing(true);
     try {
-      // 실제 구현 시 API 호출
-      // await apiService.removeBookFromLibrary(userId, book.id);
+      console.log('도서 삭제 요청:', `${API_BASE_URL}/api/library/books/${book.id}`);
       
-      // 더미 삭제 시뮬레이션
-      setTimeout(() => {
+      const response = await fetch(`${API_BASE_URL}/api/library/books/${book.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.isSuccess) {
         setBook(prev => ({ 
           ...prev, 
           isInLibrary: false,
-          readingStatus: null // 삭제 시 상태 제거
+          readingStatus: null
         }));
-        setProcessing(false);
         Alert.alert("삭제 완료", "도서가 내 서재에서 삭제되었습니다.");
-      }, 1000);
+      } else {
+        throw new Error(data.message || '삭제에 실패했습니다.');
+      }
     } catch (error) {
       console.error('도서 삭제 실패:', error);
-      setProcessing(false);
       Alert.alert("삭제 실패", "도서 삭제 중 오류가 발생했습니다.");
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -265,12 +267,31 @@ const BookDetail = ({ navigation, route }) => {
 
   const changeReadingStatus = async (newStatus) => {
     try {
-      // 실제 구현 시 API 호출
-      // await apiService.updateReadingStatus(book.id, newStatus);
+      console.log('읽기 상태 변경 요청:', `${API_BASE_URL}/api/library/books/${book.id}/status`);
       
-      // 더미 상태 변경
-      setBook(prev => ({ ...prev, readingStatus: newStatus }));
-      Alert.alert("상태 변경", `읽기 상태가 "${newStatus}"로 변경되었습니다.`);
+      const response = await fetch(`${API_BASE_URL}/api/library/books/${book.id}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          readingStatus: newStatus
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.isSuccess) {
+        setBook(prev => ({ ...prev, readingStatus: newStatus }));
+        Alert.alert("상태 변경", `읽기 상태가 "${newStatus}"로 변경되었습니다.`);
+      } else {
+        throw new Error(data.message || '상태 변경에 실패했습니다.');
+      }
     } catch (error) {
       console.error('읽기 상태 변경 실패:', error);
       Alert.alert("변경 실패", "읽기 상태 변경 중 오류가 발생했습니다.");
@@ -292,7 +313,7 @@ const BookDetail = ({ navigation, route }) => {
     const bookToPass = {
       id: book.id,
       title: book.title,
-      author: book.author,
+      authors: book.authors,
       isInLibrary: book.isInLibrary
     };
     
@@ -304,30 +325,83 @@ const BookDetail = ({ navigation, route }) => {
 
   const handleAddQuestion = async (questionData) => {
     try {
-      // 실제 구현 시 API 호출
-      // const response = await apiService.createQuestion(book.id, questionData);
-      // const newQuestion = response.data;
+      console.log('질문 등록 요청:', `${API_BASE_URL}/api/books/${book.id}/questions`);
       
-      // 더미 데이터 생성
-      const newQuestion = {
-        id: Date.now(),
-        author: "나", // 실제로는 사용자 이름
-        content: questionData.title,
-        views: 0,
-        answers: 0,
-        likes: 0,
-        isAI: false,
-        page: questionData.page ? parseInt(questionData.page) : null,
-        body: questionData.body,
-        createdAt: new Date().toISOString(),
-      };
+      const response = await fetch(`${API_BASE_URL}/api/books/${book.id}/questions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          title: questionData.title,
+          content: questionData.body,
+          page: questionData.page ? parseInt(questionData.page) : null
+        })
+      });
 
-      setQuestions((prevQuestions) => [newQuestion, ...prevQuestions]);
-      writeSheetRef.current?.close();
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.isSuccess) {
+        // 새 질문을 목록에 추가
+        const newQuestion = {
+          id: data.result.id,
+          author: "나",
+          content: questionData.title,
+          views: 0,
+          answers: 0,
+          likes: 0,
+          isAI: false,
+          page: questionData.page ? parseInt(questionData.page) : null,
+          createdAt: new Date().toISOString(),
+        };
+
+        setQuestions((prevQuestions) => [newQuestion, ...prevQuestions]);
+        writeSheetRef.current?.close();
+        Alert.alert("등록 완료", "질문이 성공적으로 등록되었습니다.");
+      } else {
+        throw new Error(data.message || '질문 등록에 실패했습니다.');
+      }
     } catch (error) {
       console.error('질문 등록 실패:', error);
       Alert.alert("등록 실패", "질문 등록 중 오류가 발생했습니다.");
     }
+  };
+
+  // 포맷된 출간일 표시
+  const formatPublishedDate = (dateString) => {
+    if (!dateString) return "-";
+    try {
+      const date = new Date(dateString);
+      return date.getFullYear();
+    } catch {
+      return dateString;
+    }
+  };
+
+  // 작가 목록을 문자열로 변환
+  const formatAuthors = (authors) => {
+    if (!authors || authors.length === 0) return "작가 미상";
+    return authors.join(", ");
+  };
+
+  // 읽기 상태 표시
+  const getReadingStatusText = () => {
+    if (book.readingStatus) {
+      return book.readingStatus;
+    }
+    return book.isInLibrary ? "내 서재에 있음" : "내 서재에 없음";
+  };
+
+  const getReadingStatusColor = () => {
+    if (book.readingStatus === "읽는 중") return "#90D1BE";
+    if (book.readingStatus === "완독") return "#4CAF50";
+    if (book.isInLibrary) return "#90D1BE";
+    return "#999";
   };
 
   const renderEmptyQuestions = () => (
@@ -345,6 +419,7 @@ const BookDetail = ({ navigation, route }) => {
         <CustomHeader title="도서 상세" onBackPress={handleGoBack} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#90D1BE" />
+          <Text style={styles.loadingText}>책 정보를 불러오는 중...</Text>
         </View>
       </SafeAreaView>
     );
@@ -356,7 +431,15 @@ const BookDetail = ({ navigation, route }) => {
         <StatusBar barStyle="dark-content" backgroundColor="#fff" />
         <CustomHeader title="도서 상세" onBackPress={handleGoBack} />
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>도서 정보를 불러올 수 없습니다</Text>
+          <Ionicons name="alert-circle-outline" size={48} color="#FF6B6B" />
+          <Text style={styles.errorTitle}>책 정보를 불러올 수 없습니다</Text>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton} 
+            onPress={loadBookData}
+          >
+            <Text style={styles.retryButtonText}>다시 시도</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -366,6 +449,12 @@ const BookDetail = ({ navigation, route }) => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       <CustomHeader title="도서 상세" onBackPress={handleGoBack} />
+
+      {error && (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorBannerText}>최신 정보를 불러오지 못했습니다.</Text>
+        </View>
+      )}
 
       <ScrollView 
         contentContainerStyle={styles.scrollContent}
@@ -396,7 +485,7 @@ const BookDetail = ({ navigation, route }) => {
 
               <View style={styles.metaRow}>
                 <Text style={styles.metaLabel}>작가</Text>
-                <Text style={styles.metaValue}>{book.author}</Text>
+                <Text style={styles.metaValue}>{formatAuthors(book.authors)}</Text>
               </View>
 
               <View style={styles.metaRow}>
@@ -405,8 +494,13 @@ const BookDetail = ({ navigation, route }) => {
               </View>
 
               <View style={styles.metaRow}>
+                <Text style={styles.metaLabel}>출간년도</Text>
+                <Text style={styles.metaValue}>{formatPublishedDate(book.publishedAt)}</Text>
+              </View>
+
+              <View style={styles.metaRow}>
                 <Text style={styles.metaLabel}>페이지</Text>
-                <Text style={styles.metaValue}>{book.pages}</Text>
+                <Text style={styles.metaValue}>{book.pageCount || "-"}</Text>
               </View>
 
               {/* 내 서재에 등록된 경우에만 읽기 상태 표시 */}
@@ -417,8 +511,8 @@ const BookDetail = ({ navigation, route }) => {
                 >
                   <Text style={styles.metaLabel}>상태</Text>
                   <View style={styles.statusContainer}>
-                    <Text style={styles.readDot}>•</Text>
-                    <Text style={styles.metaValue}>{book.readingStatus}</Text>
+                    <Text style={[styles.readDot, { color: getReadingStatusColor() }]}>•</Text>
+                    <Text style={styles.metaValue}>{getReadingStatusText()}</Text>
                     <Ionicons name="chevron-down" size={16} color="#666" style={styles.statusIcon} />
                   </View>
                 </TouchableOpacity>
@@ -432,7 +526,7 @@ const BookDetail = ({ navigation, route }) => {
                   disabled={processing}
                 >
                   {processing ? (
-                    <ActivityIndicator size="small" color="#DA1717" />
+                    <ActivityIndicator size="small" color="#F87171" />
                   ) : (
                     <Text style={styles.deleteText}>내 서재에서 삭제</Text>
                   )}

@@ -25,10 +25,10 @@ const SearchBookScreen = ({ navigation }) => {
   const [hasSearched, setHasSearched] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // API 베이스 URL (배포 서버 사용)
+  // 서버 API URL
   const API_BASE_URL = 'http://13.124.86.254';
   
-  // 화면에 포커스될 때마다 검색 상태 초기화
+  // 화면에 포커스될 때마다 검색 상태 초기화 - 검색 결과는 유지
   useFocusEffect(
     React.useCallback(() => {
       // 검색 결과와 hasSearched는 유지하고 드롭다운과 로딩만 초기화
@@ -126,10 +126,16 @@ const SearchBookScreen = ({ navigation }) => {
   };
 
   const handleBookPress = (book) => {
-    navigation.navigate('BookDetail', { 
-      bookId: book.isbn,
-      bookData: book 
-    });
+    // ISBN이 있는 경우에만 상세 페이지로 이동
+    if (book.isbn) {
+      navigation.navigate('BookDetail', { 
+        isbn: book.isbn,
+        // 기본 정보도 함께 전달
+        bookData: book 
+      });
+    } else {
+      Alert.alert('알림', '이 도서의 상세 정보를 불러올 수 없습니다.');
+    }
   };
 
   const renderBook = (book, index) => (
@@ -156,7 +162,7 @@ const SearchBookScreen = ({ navigation }) => {
       )}
       <Text style={styles.bookTitle} numberOfLines={2}>{book.title}</Text>
       <Text style={styles.bookMeta} numberOfLines={1}>
-        {book.authors && book.authors.length > 0 ? book.authors.join(', ') : '작가미상'} | {book.publisher || '출판사미상'}
+        {book.authors} | {book.publisher}
       </Text>
     </TouchableOpacity>
   );
