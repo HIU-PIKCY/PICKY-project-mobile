@@ -33,6 +33,7 @@ const BookDetail = ({ navigation, route }) => {
   const [questions, setQuestions] = useState([]);
   const [selectedSort, setSelectedSort] = useState('latest');
   const [loading, setLoading] = useState(true);
+  const [questionsLoading, setQuestionsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState(null);
@@ -42,10 +43,10 @@ const BookDetail = ({ navigation, route }) => {
   }, [isbn]);
 
   useEffect(() => {
-    if (book) {
+    if (book && book.bookId) {
       loadQuestions();
     }
-  }, [book, selectedSort]);
+  }, [book?.bookId, selectedSort]);
 
   const loadBookData = async () => {
     if (!isbn) {
@@ -58,30 +59,57 @@ const BookDetail = ({ navigation, route }) => {
       setLoading(true);
       setError(null);
       
-      console.log('책 상세 정보 요청:', `${API_BASE_URL}/api/books/${isbn}`);
+      // ISBN으로 데이터베이스 내부 책 ID 조회
+      console.log('ISBN으로 책 ID 조회:', `${API_BASE_URL}/api/books/isbn/${isbn}`);
       
-      const response = await fetch(`${API_BASE_URL}/api/books/${isbn}`, {
+      const isbnResponse = await fetch(`${API_BASE_URL}/api/books/isbn/${isbn}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
         }
       });
 
-      console.log('응답 상태:', response.status);
+      console.log('ISBN 조회 응답 상태:', isbnResponse.status);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!isbnResponse.ok) {
+        throw new Error(`HTTP error! status: ${isbnResponse.status}`);
       }
 
-      const data = await response.json();
-      console.log('책 상세 응답:', data);
+      const isbnData = await isbnResponse.json();
+      console.log('ISBN 조회 응답:', isbnData);
 
-      if (data.isSuccess && data.result) {
-        const bookDetail = data.result;
+      if (!isbnData.isSuccess || !isbnData.result) {
+        throw new Error(isbnData.message || 'ISBN으로 책을 찾을 수 없습니다.');
+      }
+
+      const bookId = isbnData.result.id;
+      
+      // 책 상세 정보 조회 (isbn 이용)
+      console.log('책 상세 정보 요청:', `${API_BASE_URL}/api/books/${isbn}`);
+      
+      const detailResponse = await fetch(`${API_BASE_URL}/api/books/${isbn}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
+
+      console.log('상세 정보 응답 상태:', detailResponse.status);
+
+      if (!detailResponse.ok) {
+        throw new Error(`HTTP error! status: ${detailResponse.status}`);
+      }
+
+      const detailData = await detailResponse.json();
+      console.log('책 상세 응답:', detailData);
+
+      if (detailData.isSuccess && detailData.result) {
+        const bookDetail = detailData.result;
         setBook({
-          id: bookDetail.isbn, // ISBN을 ID로 사용
-          title: bookDetail.title || "제목 없음",
-          authors: bookDetail.authors || ["작가 미상"],
+          isbn: bookDetail.isbn || isbn,
+          bookId: bookId, // ISBN으로 조회한 내부 ID 사용
+          title: bookDetail.title || isbnData.result.title || "제목 없음",
+          authors: bookDetail.authors || [isbnData.result.author] || ["작가 미상"],
           publisher: bookDetail.publisher || "출판사 미상",
           pageCount: bookDetail.pageCount || 0,
           publishedAt: bookDetail.publishedAt || "",
@@ -90,16 +118,29 @@ const BookDetail = ({ navigation, route }) => {
           readingStatus: bookDetail.readingStatus || null,
         });
       } else {
-        throw new Error(data.message || '책 정보를 가져올 수 없습니다.');
+        // 상세 정보 조회 실패 시 ISBN 조회 결과만으로라도 설정
+        setBook({
+          isbn: isbn,
+          bookId: bookId,
+          title: isbnData.result.title || "제목 없음",
+          authors: [isbnData.result.author] || ["작가 미상"],
+          publisher: "출판사 미상",
+          pageCount: 0,
+          publishedAt: "",
+          coverImage: null,
+          isInLibrary: false,
+          readingStatus: null,
+        });
       }
     } catch (error) {
-      console.error('책 상세 정보 가져오기 실패:', error);
+      console.error('책 정보 가져오기 실패:', error);
       setError(error.message);
       
-      // 에러 시 기본 데이터라도 표시
+      // 에러 시 기본 데이터라도 표시 (질문 기능은 비활성화)
       if (bookData) {
         setBook({
-          id: bookData.isbn || isbn,
+          isbn: bookData.isbn || isbn,
+          bookId: null, // 에러 시에는 내부 ID 없음
           title: bookData.title || "제목 없음",
           authors: bookData.authors || ["작가 미상"],
           publisher: bookData.publisher || "출판사 미상",
@@ -116,19 +157,73 @@ const BookDetail = ({ navigation, route }) => {
   };
 
   const loadQuestions = async () => {
+    if (!book || !book.bookId) {
+      console.log('bookId가 없어서 질문을 가져올 수 없습니다.');
+      setQuestions([]);
+      return;
+    }
+
     try {
-      // 실제 구현 시 질문 API 호출
-      // const response = await fetch(`${API_BASE_URL}/api/books/${book.id}/questions?sort=${selectedSort}`);
-      // const data = await response.json();
-      // if (data.isSuccess) {
-      //   setQuestions(data.result);
-      // }
+      setQuestionsLoading(true);
+      console.log('질문 목록 요청:', `${API_BASE_URL}/api/books/${book.bookId}/questions`);
       
-      // 현재는 더미 데이터 사용
-      const dummyQuestions = [];
-      setQuestions(dummyQuestions);
+      const response = await fetch(`${API_BASE_URL}/api/books/${book.bookId}/questions`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
+
+      console.log('질문 목록 응답 상태:', response.status);
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          setQuestions([]);
+          return;
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('질문 목록 응답:', data);
+
+      if (data.isSuccess && data.result && data.result.questions) {
+        const formattedQuestions = data.result.questions.map(q => ({
+          id: q.id,
+          // 닉네임: 향후 nickname 필드가 추가되면 우선적으로 사용, 없으면 author 필드 사용
+          author: q.nickname || q.author || "사용자",
+          // 프로필 이미지: 향후 profileImg 필드가 추가되면 자동으로 사용
+          authorImage: q.profileImg || q.profileImage || null,
+          content: q.title,
+          body: q.content || "", // content 필드가 없어서 빈 문자열로 설정
+          views: q.views || 0,
+          // comments를 answers로 매핑 (API에서 comments로 응답)
+          answers: q.comments || q.answersCount || 0,
+          likes: q.likes || 0,
+          isAI: q.isAI || false,
+          isLiked: q.isLiked || false,
+          page: q.page || null,
+          createdAt: q.createdAt || new Date().toISOString(), // createdAt이 없으면 현재 시간으로 설정
+        }));
+
+        const sortedQuestions = [...formattedQuestions].sort((a, b) => {
+          if (selectedSort === 'latest') {
+            return new Date(b.createdAt) - new Date(a.createdAt);
+          } else if (selectedSort === 'recommended') {
+            return b.likes - a.likes;
+          }
+          return 0;
+        });
+
+        setQuestions(sortedQuestions);
+      } else {
+        setQuestions([]);
+      }
     } catch (error) {
       console.error('질문 목록 로딩 실패:', error);
+      setQuestions([]);
+    } finally {
+      setQuestionsLoading(false);
     }
   };
 
@@ -142,192 +237,24 @@ const BookDetail = ({ navigation, route }) => {
   
   const handleAIQuestion = () => aiSheetRef.current?.open();
   
-  const handleQuestionRegister = () => writeSheetRef.current?.open();
-  
-  const handleAddToLibrary = () => {
-    Alert.alert(
-      "내 서재에 등록",
-      "이 도서를 내 서재에 등록하시겠습니까?",
-      [
-        { text: "취소", style: "cancel" },
-        { 
-          text: "등록", 
-          onPress: confirmAddToLibrary 
-        }
-      ]
-    );
-  };
-
-  const confirmAddToLibrary = async () => {
-    setProcessing(true);
-    try {
-      console.log('도서 추가 요청:', `${API_BASE_URL}/api/library/books`);
-      
-      const response = await fetch(`${API_BASE_URL}/api/library/books`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          isbn: book.id,
-          readingStatus: "읽는 중"
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.isSuccess) {
-        setBook(prev => ({ 
-          ...prev, 
-          isInLibrary: true,
-          readingStatus: "읽는 중"
-        }));
-        Alert.alert("등록 완료", "도서가 내 서재에 등록되었습니다.");
-      } else {
-        throw new Error(data.message || '등록에 실패했습니다.');
-      }
-    } catch (error) {
-      console.error('도서 추가 실패:', error);
-      Alert.alert("등록 실패", "도서 등록 중 오류가 발생했습니다.");
-    } finally {
-      setProcessing(false);
+  const handleQuestionRegister = () => {
+    if (!book?.bookId) {
+      Alert.alert("알림", "질문을 등록하려면 도서가 데이터베이스에 등록되어야 합니다.");
+      return;
     }
-  };
-
-  const handleRemoveFromLibrary = () => {
-    Alert.alert(
-      "도서 삭제",
-      "정말로 내 서재에서 이 도서를 삭제하시겠습니까?",
-      [
-        { text: "취소", style: "cancel" },
-        { 
-          text: "삭제", 
-          style: "destructive",
-          onPress: confirmRemoveFromLibrary 
-        }
-      ]
-    );
-  };
-
-  const confirmRemoveFromLibrary = async () => {
-    setProcessing(true);
-    try {
-      console.log('도서 삭제 요청:', `${API_BASE_URL}/api/library/books/${book.id}`);
-      
-      const response = await fetch(`${API_BASE_URL}/api/library/books/${book.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Accept': 'application/json',
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.isSuccess) {
-        setBook(prev => ({ 
-          ...prev, 
-          isInLibrary: false,
-          readingStatus: null
-        }));
-        Alert.alert("삭제 완료", "도서가 내 서재에서 삭제되었습니다.");
-      } else {
-        throw new Error(data.message || '삭제에 실패했습니다.');
-      }
-    } catch (error) {
-      console.error('도서 삭제 실패:', error);
-      Alert.alert("삭제 실패", "도서 삭제 중 오류가 발생했습니다.");
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const handleReadingStatusChange = () => {
-    const statusOptions = ["읽는 중", "완독"];
-    Alert.alert(
-      "읽기 상태 변경",
-      "변경할 상태를 선택해주세요",
-      [
-        { text: "취소", style: "cancel" },
-        ...statusOptions.map(status => ({
-          text: status,
-          onPress: () => changeReadingStatus(status)
-        }))
-      ]
-    );
-  };
-
-  const changeReadingStatus = async (newStatus) => {
-    try {
-      console.log('읽기 상태 변경 요청:', `${API_BASE_URL}/api/library/books/${book.id}/status`);
-      
-      const response = await fetch(`${API_BASE_URL}/api/library/books/${book.id}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          readingStatus: newStatus
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.isSuccess) {
-        setBook(prev => ({ ...prev, readingStatus: newStatus }));
-        Alert.alert("상태 변경", `읽기 상태가 "${newStatus}"로 변경되었습니다.`);
-      } else {
-        throw new Error(data.message || '상태 변경에 실패했습니다.');
-      }
-    } catch (error) {
-      console.error('읽기 상태 변경 실패:', error);
-      Alert.alert("변경 실패", "읽기 상태 변경 중 오류가 발생했습니다.");
-    }
-  };
-
-  const goToQuestionDetail = (question) => {
-    const questionToPass = {
-      id: question.id,
-      author: question.author,
-      content: question.content,
-      views: question.views,
-      answers: question.answers,
-      likes: question.likes,
-      isAI: question.isAI,
-      page: question.page
-    };
-    
-    const bookToPass = {
-      id: book.id,
-      title: book.title,
-      authors: book.authors,
-      isInLibrary: book.isInLibrary
-    };
-    
-    navigation.navigate("QuestionDetail", {
-      questionData: questionToPass,
-      bookData: bookToPass
-    });
+    writeSheetRef.current?.open();
   };
 
   const handleAddQuestion = async (questionData) => {
+    if (!book?.bookId) {
+      Alert.alert("오류", "질문을 등록할 수 없습니다. 도서 정보가 불완전합니다.");
+      return;
+    }
+
     try {
-      console.log('질문 등록 요청:', `${API_BASE_URL}/api/books/${book.id}/questions`);
+      console.log('질문 등록 요청:', `${API_BASE_URL}/api/books/${book.bookId}/questions`);
       
-      const response = await fetch(`${API_BASE_URL}/api/books/${book.id}/questions`, {
+      const response = await fetch(`${API_BASE_URL}/api/books/${book.bookId}/questions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -335,7 +262,7 @@ const BookDetail = ({ navigation, route }) => {
         },
         body: JSON.stringify({
           title: questionData.title,
-          content: questionData.body,
+          content: questionData.body || questionData.title,
           page: questionData.page ? parseInt(questionData.page) : null
         })
       });
@@ -347,20 +274,7 @@ const BookDetail = ({ navigation, route }) => {
       const data = await response.json();
       
       if (data.isSuccess) {
-        // 새 질문을 목록에 추가
-        const newQuestion = {
-          id: data.result.id,
-          author: "나",
-          content: questionData.title,
-          views: 0,
-          answers: 0,
-          likes: 0,
-          isAI: false,
-          page: questionData.page ? parseInt(questionData.page) : null,
-          createdAt: new Date().toISOString(),
-        };
-
-        setQuestions((prevQuestions) => [newQuestion, ...prevQuestions]);
+        await loadQuestions();
         writeSheetRef.current?.close();
         Alert.alert("등록 완료", "질문이 성공적으로 등록되었습니다.");
       } else {
@@ -372,7 +286,6 @@ const BookDetail = ({ navigation, route }) => {
     }
   };
 
-  // 포맷된 출간일 표시
   const formatPublishedDate = (dateString) => {
     if (!dateString) return "-";
     try {
@@ -383,13 +296,11 @@ const BookDetail = ({ navigation, route }) => {
     }
   };
 
-  // 작가 목록을 문자열로 변환
   const formatAuthors = (authors) => {
     if (!authors || authors.length === 0) return "작가 미상";
     return authors.join(", ");
   };
 
-  // 읽기 상태 표시
   const getReadingStatusText = () => {
     if (book.readingStatus) {
       return book.readingStatus;
@@ -411,6 +322,80 @@ const BookDetail = ({ navigation, route }) => {
       <Text style={styles.emptySubText}>첫 번째 질문을 등록해보세요!</Text>
     </View>
   );
+
+  const renderQuestionsSection = () => {
+    if (!book?.bookId) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color="#CCCCCC" />
+          <Text style={styles.emptyText}>질문 기능을 사용할 수 없습니다</Text>
+          <Text style={styles.emptySubText}>도서가 데이터베이스에 등록되지 않았습니다</Text>
+        </View>
+      );
+    }
+
+    if (questionsLoading) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color="#90D1BE" />
+          <Text style={styles.loadingText}>질문을 불러오는 중...</Text>
+        </View>
+      );
+    }
+
+    if (questions.length === 0) {
+      return renderEmptyQuestions();
+    }
+
+    return questions.map((q) => (
+      <TouchableOpacity
+        key={q.id}
+        style={styles.answerContainer}
+        activeOpacity={0.7}
+      >
+        <View style={styles.authorIconContainer}>
+          {q.isAI ? (
+            <View style={styles.aiIcon}>
+              <Text style={styles.aiIconText}>AI</Text>
+            </View>
+          ) : (
+            <View style={styles.userIconContainer}>
+              {q.authorImage ? (
+                <Image 
+                  source={{ uri: q.authorImage }} 
+                  style={styles.userIconImage}
+                  resizeMode="cover"
+                  onError={() => {
+                    console.log('프로필 이미지 로딩 실패:', q.authorImage);
+                  }}
+                />
+              ) : (
+                <View style={styles.userIcon}>
+                  <Ionicons name="person-outline" size={16} color="#999" />
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+        <View style={styles.answerContentWrapper}>
+          <View style={styles.authorRow}>
+            <Text style={styles.authorName}>{q.author}</Text>
+          </View>
+          <Text style={styles.answerText}>{q.content}</Text>
+        </View>
+        <View style={styles.answerMetaWrapper}>
+          <View style={styles.statItem}>
+            <Ionicons name="book-outline" size={16} color="#666" />
+            <Text style={styles.statText}>
+              {q.page !== null ? q.page : "-"}
+            </Text>
+          </View>
+          <Text style={styles.statText}>답변 {q.answers}</Text>
+          <Text style={styles.statText}>추천 {q.likes}</Text>
+        </View>
+      </TouchableOpacity>
+    ));
+  };
 
   if (loading) {
     return (
@@ -477,7 +462,9 @@ const BookDetail = ({ navigation, route }) => {
                   resizeMode="cover"
                 />
               ) : (
-                <View style={styles.emptyCover} />
+                <View style={styles.emptyCover}>
+                  <Ionicons name="book-outline" size={24} color="#999" />
+                </View>
               )}
             </View>
             <View style={styles.bookInfo}>
@@ -503,26 +490,19 @@ const BookDetail = ({ navigation, route }) => {
                 <Text style={styles.metaValue}>{book.pageCount || "-"}</Text>
               </View>
 
-              {/* 내 서재에 등록된 경우에만 읽기 상태 표시 */}
               {book.isInLibrary && (
-                <TouchableOpacity 
-                  style={styles.metaRow}
-                  onPress={handleReadingStatusChange}
-                >
+                <View style={styles.metaRow}>
                   <Text style={styles.metaLabel}>상태</Text>
                   <View style={styles.statusContainer}>
                     <Text style={[styles.readDot, { color: getReadingStatusColor() }]}>•</Text>
                     <Text style={styles.metaValue}>{getReadingStatusText()}</Text>
-                    <Ionicons name="chevron-down" size={16} color="#666" style={styles.statusIcon} />
                   </View>
-                </TouchableOpacity>
+                </View>
               )}
 
               {book.isInLibrary ? (
-                // 내 서재에서 삭제 버튼
                 <TouchableOpacity
                   style={[styles.deleteButton, processing && styles.buttonDisabled]}
-                  onPress={handleRemoveFromLibrary}
                   disabled={processing}
                 >
                   {processing ? (
@@ -532,10 +512,8 @@ const BookDetail = ({ navigation, route }) => {
                   )}
                 </TouchableOpacity>
               ) : (
-                // 내 서재에 등록 버튼
                 <TouchableOpacity
                   style={[styles.addButton, processing && styles.buttonDisabled]}
-                  onPress={handleAddToLibrary}
                   disabled={processing}
                 >
                   {processing ? (
@@ -551,83 +529,50 @@ const BookDetail = ({ navigation, route }) => {
 
         <View style={styles.answersSectionHeader}>
           <Text style={styles.answersTitle}>독서 질문 리스트</Text>
-          <View style={styles.sortButtons}>
-            <TouchableOpacity 
-              style={styles.sortButton}
-              onPress={() => setSelectedSort('latest')}
-            >
-              <Text style={[
-                styles.sortButtonText,
-                selectedSort === 'latest' && styles.sortButtonTextSelected
-              ]}>
-                최신순
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.sortButton}
-              onPress={() => setSelectedSort('recommended')}
-            >
-              <Text style={[
-                styles.sortButtonText,
-                selectedSort === 'recommended' && styles.sortButtonTextSelected
-              ]}>
-                추천순
-              </Text>
-            </TouchableOpacity>
-          </View>
+          {book?.bookId && (
+            <View style={styles.sortButtons}>
+              <TouchableOpacity 
+                style={styles.sortButton}
+                onPress={() => setSelectedSort('latest')}
+              >
+                <Text style={[
+                  styles.sortButtonText,
+                  selectedSort === 'latest' && styles.sortButtonTextSelected
+                ]}>
+                  최신순
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.sortButton}
+                onPress={() => setSelectedSort('recommended')}
+              >
+                <Text style={[
+                  styles.sortButtonText,
+                  selectedSort === 'recommended' && styles.sortButtonTextSelected
+                ]}>
+                  추천순
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
-        {questions.length > 0 ? (
-          questions.map((q) => (
-            <TouchableOpacity
-              key={q.id}
-              style={styles.answerContainer}
-              onPress={() => goToQuestionDetail(q)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.authorIconContainer}>
-                {q.isAI ? (
-                  <View style={styles.aiIcon}>
-                    <Text style={styles.aiIconText}>AI</Text>
-                  </View>
-                ) : (
-                  <View style={styles.userIcon} />
-                )}
-              </View>
-              <View style={styles.answerContentWrapper}>
-                <View style={styles.authorRow}>
-                  <Text style={styles.authorName}>{q.author}</Text>
-                </View>
-                <Text style={styles.answerText}>{q.content}</Text>
-              </View>
-              <View style={styles.answerMetaWrapper}>
-                <View style={styles.statItem}>
-                  <Ionicons name="book-outline" size={16} color="#666" />
-                  <Text style={styles.statText}>
-                    {q.page !== null ? q.page : "-"}
-                  </Text>
-                </View>
-                <Text style={styles.statText}>답변 {q.answers}</Text>
-                <Text style={styles.statText}>추천 {q.likes}</Text>
-              </View>
-            </TouchableOpacity>
-          ))
-        ) : (
-          renderEmptyQuestions()
-        )}
+        {renderQuestionsSection()}
       </ScrollView>
 
       <View style={styles.answerInputContainer}>
         <TouchableOpacity
-          style={styles.aiAnswerButton}
+          style={[styles.aiAnswerButton, !book?.bookId && styles.buttonDisabled]}
           onPress={handleAIQuestion}
+          disabled={!book?.bookId}
         >
           <MintStar />
           <Text style={styles.aiAnswerButtonText}>AI 질문 생성</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.submitButton}
+          style={[styles.submitButton, !book?.bookId && styles.buttonDisabled]}
           onPress={handleQuestionRegister}
+          disabled={!book?.bookId}
         >
           <Text style={styles.submitButtonText}>질문 등록</Text>
         </TouchableOpacity>
@@ -644,22 +589,67 @@ const BookDetail = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  scrollContent: { flexGrow: 1 },
+  container: { 
+    flex: 1, 
+    backgroundColor: "#fff" 
+  },
+  scrollContent: { 
+    flexGrow: 1 
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 12,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
   },
   errorText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: '#90D1BE',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
     fontSize: 16,
-    fontFamily: "SUIT-Medium",
-    color: "#999999",
+    fontWeight: '600',
+  },
+  errorBanner: {
+    backgroundColor: '#FFF3CD',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FFEAA7',
+  },
+  errorBannerText: {
+    fontSize: 12,
+    color: '#856404',
+    textAlign: 'center',
   },
   emptyContainer: {
     flex: 1,
@@ -680,7 +670,10 @@ const styles = StyleSheet.create({
     color: "#CCCCCC",
     marginTop: 8,
   },
-  questionSection: { backgroundColor: "#fff", padding: 20 },
+  questionSection: { 
+    backgroundColor: "#fff", 
+    padding: 20 
+  },
   bookSection: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -701,6 +694,8 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     backgroundColor: "#E8E8E8",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   bookInfo: {
     flex: 1,
@@ -739,11 +734,7 @@ const styles = StyleSheet.create({
   readDot: {
     fontSize: 14,
     fontFamily: "SUIT-Medium",
-    color: "#90D1BE",
     marginRight: 4,
-  },
-  statusIcon: {
-    marginLeft: 4,
   },
   deleteButton: {
     borderWidth: 1,
@@ -792,7 +783,9 @@ const styles = StyleSheet.create({
     letterSpacing: -0.7,
     color: "#4B4B4B",
   },
-  sortButtons: { flexDirection: "row" },
+  sortButtons: { 
+    flexDirection: "row" 
+  },
   sortButton: {
     marginLeft: 12,
   },
@@ -832,14 +825,30 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 10,
   },
-  userIcon: {
-    backgroundColor: "#f1f3f4",
-    borderRadius: 16,
+  userIconContainer: {
     width: 30,
     height: 30,
     marginRight: 8,
+    borderRadius: 15,
+    overflow: 'hidden',
   },
-  answerContentWrapper: { flex: 1, minWidth: 0 },
+  userIconImage: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+  },
+  userIcon: {
+    backgroundColor: "#f1f3f4",
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  answerContentWrapper: { 
+    flex: 1, 
+    minWidth: 0 
+  },
   authorRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -850,24 +859,11 @@ const styles = StyleSheet.create({
     fontFamily: "SUIT-Medium",
     color: "#666",
   },
-  pageInfo: {
-    fontSize: 10,
-    fontFamily: "SUIT-Medium",
-    color: "#90D1BE",
-    marginLeft: 8,
-  },
   answerText: {
     fontSize: 14,
     fontFamily: "SUIT-SemiBold",
     letterSpacing: -0.4,
     color: "#666",
-  },
-  answerBody: {
-    fontSize: 12,
-    fontFamily: "SUIT-Medium",
-    color: "#999",
-    marginTop: 4,
-    lineHeight: 16,
   },
   answerMetaWrapper: {
     flexDirection: "row",
