@@ -245,6 +245,37 @@ const BookDetail = ({ navigation, route }) => {
     writeSheetRef.current?.open();
   };
 
+  // 질문 클릭 시 질문 상세 화면으로 이동하는 함수 추가
+  const handleQuestionPress = (question) => {
+    if (!question || !book) return;
+
+    navigation.navigate('QuestionDetail', {
+      questionData: {
+        id: question.id,
+        content: question.content,
+        body: question.body,
+        author: question.author,
+        nickname: question.author,
+        profileImg: question.authorImage,
+        profileImage: question.authorImage,
+        isAI: question.isAI,
+        views: question.views,
+        likes: question.likes,
+        answers: question.answers,
+        page: question.page,
+        createdAt: question.createdAt,
+        isLiked: question.isLiked
+      },
+      bookData: {
+        id: book.bookId,
+        title: book.title,
+        authors: book.authors,
+        author: book.authors[0]
+      },
+      questionId: question.id
+    });
+  };
+
   const handleAddQuestion = async (questionData) => {
     if (!book?.bookId) {
       Alert.alert("오류", "질문을 등록할 수 없습니다. 도서 정보가 불완전합니다.");
@@ -352,6 +383,7 @@ const BookDetail = ({ navigation, route }) => {
         key={q.id}
         style={styles.answerContainer}
         activeOpacity={0.7}
+        onPress={() => handleQuestionPress(q)}
       >
         <View style={styles.authorIconContainer}>
           {q.isAI ? (
