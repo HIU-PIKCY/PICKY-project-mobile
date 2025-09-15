@@ -13,114 +13,22 @@ import {
     KeyboardAvoidingView,
     Platform
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { auth } from '../config/firebaseConfig';
 import CustomHeader from '../components/CustomHeader';
 
 const RegisterScreen = ({ navigation }) => {
     const [email, setEmail] = useState('');
-    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [passwordConfirm, setPasswordConfirm] = useState('');
     const [name, setName] = useState('');
     const [nickname, setNickname] = useState('');
     
     const [loading, setLoading] = useState(false);
-    const [checkingUsername, setCheckingUsername] = useState(false);
-    const [checkingNickname, setCheckingNickname] = useState(false);
-    
     const [passwordMismatch, setPasswordMismatch] = useState(false);
-    const [usernameAvailable, setUsernameAvailable] = useState(null);
-    const [nicknameAvailable, setNicknameAvailable] = useState(null);
-    const [usernameCheckTimeout, setUsernameCheckTimeout] = useState(null);
-    const [nicknameCheckTimeout, setNicknameCheckTimeout] = useState(null);
 
     const handleGoBack = () => {
         navigation.goBack();
-    };
-
-    const checkUsernameAvailability = async (usernameToCheck) => {
-        if (!usernameToCheck || usernameToCheck.length < 4) {
-            setUsernameAvailable(null);
-            return;
-        }
-
-        setCheckingUsername(true);
-        try {
-            // 실제 구현 시 API 호출
-            // const response = await apiService.checkUsernameAvailability(usernameToCheck);
-            // setUsernameAvailable(response.data.available);
-            
-            // 더미 아이디 검증 (특정 아이디들은 사용 불가로 설정)
-            setTimeout(() => {
-                const unavailableUsernames = ['admin', 'test', 'user', 'kipiluv'];
-                const isAvailable = !unavailableUsernames.includes(usernameToCheck.toLowerCase());
-                setUsernameAvailable(isAvailable);
-                setCheckingUsername(false);
-            }, 1000);
-        } catch (error) {
-            console.error('아이디 확인 실패:', error);
-            setUsernameAvailable(null);
-            setCheckingUsername(false);
-        }
-    };
-
-    const checkNicknameAvailability = async (nicknameToCheck) => {
-        if (!nicknameToCheck || nicknameToCheck.length < 2) {
-            setNicknameAvailable(null);
-            return;
-        }
-
-        setCheckingNickname(true);
-        try {
-            // 실제 구현 시 API 호출
-            // const response = await apiService.checkNicknameAvailability(nicknameToCheck);
-            // setNicknameAvailable(response.data.available);
-            
-            // 더미 닉네임 검증 (랜덤 결과)
-            setTimeout(() => {
-                const isAvailable = Math.random() > 0.3;
-                setNicknameAvailable(isAvailable);
-                setCheckingNickname(false);
-            }, 1000);
-        } catch (error) {
-            console.error('닉네임 확인 실패:', error);
-            setNicknameAvailable(null);
-            setCheckingNickname(false);
-        }
-    };
-
-    const handleUsernameChange = (text) => {
-        setUsername(text);
-        setUsernameAvailable(null);
-
-        // 기존 타이머 클리어
-        if (usernameCheckTimeout) {
-            clearTimeout(usernameCheckTimeout);
-        }
-
-        // 새 타이머 설정 (디바운스)
-        const timeout = setTimeout(() => {
-            checkUsernameAvailability(text);
-        }, 500);
-        
-        setUsernameCheckTimeout(timeout);
-    };
-
-    const handleNicknameChange = (text) => {
-        setNickname(text);
-        setNicknameAvailable(null);
-
-        // 기존 타이머 클리어
-        if (nicknameCheckTimeout) {
-            clearTimeout(nicknameCheckTimeout);
-        }
-
-        // 새 타이머 설정 (디바운스)
-        const timeout = setTimeout(() => {
-            checkNicknameAvailability(text);
-        }, 500);
-        
-        setNicknameCheckTimeout(timeout);
     };
 
     const handlePasswordConfirmChange = (text) => {
@@ -145,26 +53,6 @@ const RegisterScreen = ({ navigation }) => {
 
         if (!validateEmail(email)) {
             Alert.alert('오류', '올바른 이메일 형식을 입력해주세요.');
-            return false;
-        }
-
-        if (!username.trim()) {
-            Alert.alert('오류', '아이디를 입력해주세요.');
-            return false;
-        }
-
-        if (username.length < 4) {
-            Alert.alert('오류', '아이디는 4자 이상이어야 합니다.');
-            return false;
-        }
-
-        if (usernameAvailable === false) {
-            Alert.alert('오류', '이미 존재하는 아이디입니다.');
-            return false;
-        }
-
-        if (usernameAvailable === null && username.length >= 4) {
-            Alert.alert('오류', '아이디 중복확인을 진행해주세요.');
             return false;
         }
 
@@ -198,16 +86,6 @@ const RegisterScreen = ({ navigation }) => {
             return false;
         }
 
-        if (nicknameAvailable === false) {
-            Alert.alert('오류', '사용할 수 없는 닉네임입니다.');
-            return false;
-        }
-
-        if (nicknameAvailable === null && nickname.length >= 2) {
-            Alert.alert('오류', '닉네임 중복확인을 진행해주세요.');
-            return false;
-        }
-
         return true;
     };
 
@@ -216,67 +94,59 @@ const RegisterScreen = ({ navigation }) => {
 
         setLoading(true);
         try {
-            // 실제 구현 시 API 호출
-            // const response = await apiService.register({
-            //     email: email.trim(),
-            //     username: username.trim(),
-            //     password: password.trim(),
-            //     passwordConfirm: passwordConfirm.trim(),
-            //     name: name.trim(),
-            //     nickname: nickname.trim()
-            // });
+            // Firebase 회원가입
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            
+            // Firebase 프로필 업데이트 (displayName에 이름과 닉네임 저장)
+            await updateProfile(userCredential.user, {
+                displayName: JSON.stringify({
+                    name: name.trim(),
+                    nickname: nickname.trim()
+                })
+            });
 
-            // 더미 회원가입 시뮬레이션
-            setTimeout(() => {
-                setLoading(false);
-                Alert.alert(
-                    '회원가입 완료',
-                    '회원가입이 성공적으로 완료되었습니다.',
-                    [
-                        {
-                            text: '확인',
-                            onPress: () => navigation.navigate('Login')
+            // AuthContext에서 자동으로 백엔드 회원가입 처리
+            Alert.alert(
+                '회원가입 완료',
+                '회원가입이 성공적으로 완료되었습니다.',
+                [
+                    {
+                        text: '확인',
+                        onPress: () => {
+                            // AuthContext에서 자동으로 로그인 처리되므로 별도 네비게이션 불필요
                         }
-                    ]
-                );
-            }, 2000);
+                    }
+                ]
+            );
         } catch (error) {
             console.error('회원가입 실패:', error);
+            
+            let errorMessage = '회원가입 중 오류가 발생했습니다.';
+            
+            switch (error.code) {
+                case 'auth/email-already-in-use':
+                    errorMessage = '이미 가입된 이메일입니다.';
+                    break;
+                case 'auth/weak-password':
+                    errorMessage = '비밀번호가 너무 약합니다. 6자 이상 입력해주세요.';
+                    break;
+                case 'auth/invalid-email':
+                    errorMessage = '올바르지 않은 이메일 형식입니다.';
+                    break;
+                case 'auth/operation-not-allowed':
+                    errorMessage = '이메일/비밀번호 회원가입이 비활성화되어 있습니다.';
+                    break;
+                case 'auth/network-request-failed':
+                    errorMessage = '네트워크 연결을 확인해주세요.';
+                    break;
+                default:
+                    errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
+            }
+            
+            Alert.alert('회원가입 실패', errorMessage);
+        } finally {
             setLoading(false);
-            Alert.alert('회원가입 실패', '회원가입 중 오류가 발생했습니다.');
         }
-    };
-
-    const renderUsernameStatus = () => {
-        if (checkingUsername) {
-            return <Text style={styles.checkingText}>확인 중...</Text>;
-        }
-
-        if (usernameAvailable === false) {
-            return <Text style={styles.errorText}>* 이미 존재하는 아이디입니다.</Text>;
-        }
-
-        if (usernameAvailable === true) {
-            return <Text style={styles.successText}>* 사용 가능한 아이디입니다.</Text>;
-        }
-
-        return null;
-    };
-
-    const renderNicknameStatus = () => {
-        if (checkingNickname) {
-            return <Text style={styles.checkingText}>확인 중...</Text>;
-        }
-
-        if (nicknameAvailable === false) {
-            return <Text style={styles.errorText}>* 이미 존재하는 닉네임입니다.</Text>;
-        }
-
-        if (nicknameAvailable === true) {
-            return <Text style={styles.successText}>* 사용 가능한 닉네임입니다.</Text>;
-        }
-
-        return null;
     };
 
     return (
@@ -308,26 +178,8 @@ const RegisterScreen = ({ navigation }) => {
                             autoCapitalize="none"
                             autoCorrect={false}
                             editable={!loading}
-                        />
-                    </View>
-
-                    {/* 아이디 섹션 */}
-                    <View style={styles.inputSection}>
-                        <View style={styles.labelRow}>
-                            <Text style={styles.label}>아이디</Text>
-                            {renderUsernameStatus()}
-                        </View>
-                        <TextInput
-                            style={[
-                                styles.input,
-                                usernameAvailable === true && styles.successInput,
-                                usernameAvailable === false && styles.errorInput
-                            ]}
-                            value={username}
-                            onChangeText={handleUsernameChange}
-                            autoCapitalize="none"
-                            autoCorrect={false}
-                            editable={!loading}
+                            placeholder="example@email.com"
+                            placeholderTextColor="#999"
                         />
                     </View>
 
@@ -336,7 +188,7 @@ const RegisterScreen = ({ navigation }) => {
                         <Text style={styles.label}>비밀번호</Text>
                         <TextInput
                             style={styles.passwordInput}
-                            placeholder="비밀번호를 입력하세요."
+                            placeholder="비밀번호를 입력하세요 (6자 이상)"
                             placeholderTextColor="#999"
                             secureTextEntry
                             value={password}
@@ -360,7 +212,8 @@ const RegisterScreen = ({ navigation }) => {
                                 styles.input,
                                 passwordMismatch && styles.errorInput
                             ]}
-                            placeholder=""
+                            placeholder="비밀번호를 다시 입력하세요"
+                            placeholderTextColor="#999"
                             secureTextEntry
                             value={passwordConfirm}
                             onChangeText={handlePasswordConfirmChange}
@@ -375,7 +228,8 @@ const RegisterScreen = ({ navigation }) => {
                         <Text style={styles.label}>이름</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder=""
+                            placeholder="실명을 입력해주세요"
+                            placeholderTextColor="#999"
                             value={name}
                             onChangeText={setName}
                             editable={!loading}
@@ -384,19 +238,13 @@ const RegisterScreen = ({ navigation }) => {
 
                     {/* 닉네임 섹션 */}
                     <View style={styles.inputSection}>
-                        <View style={styles.labelRow}>
-                            <Text style={styles.label}>닉네임</Text>
-                            {renderNicknameStatus()}
-                        </View>
+                        <Text style={styles.label}>닉네임</Text>
                         <TextInput
-                            style={[
-                                styles.input,
-                                nicknameAvailable === true && styles.successInput,
-                                nicknameAvailable === false && styles.errorInput
-                            ]}
-                            placeholder=""
+                            style={styles.input}
+                            placeholder="사용할 닉네임을 입력해주세요"
+                            placeholderTextColor="#999"
                             value={nickname}
-                            onChangeText={handleNicknameChange}
+                            onChangeText={setNickname}
                             editable={!loading}
                         />
                     </View>
@@ -484,29 +332,11 @@ const styles = StyleSheet.create({
         borderColor: '#FF6B6B',
         backgroundColor: '#FFF5F5',
     },
-    successInput: {
-        height: 52,
-        borderColor: '#90D1BE',
-        backgroundColor: '#F3FCF9',
-    },
-    checkingText: {
-        fontSize: 14,
-        fontFamily: 'SUIT-Medium',
-        color: '#90D1BE',
-        letterSpacing: -0.3,
-        marginLeft: 8,
-    },
     errorText: {
         fontSize: 14,
         fontFamily: 'SUIT-Medium',
         color: '#F87171',
         letterSpacing: -0.3,
-        marginLeft: 8,
-    },
-    successText: {
-        fontSize: 14,
-        fontFamily: 'SUIT-Medium',
-        color: '#10B981',
         marginLeft: 8,
     },
     registerSection: {

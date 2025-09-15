@@ -12,15 +12,14 @@ import {
     KeyboardAvoidingView,
     Platform
 } from 'react-native';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../config/firebaseConfig';
 import LoginLogo from '../assets/icons/LoginLogo.svg';
-import { useAuth } from '../AuthContext';
 
 const LoginScreen = ({ navigation }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
-
-    const { loginWithEmail, getErrorMessage } = useAuth();
 
     const validateEmail = (email) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -28,13 +27,12 @@ const LoginScreen = ({ navigation }) => {
     };
 
     const handleLogin = async () => {
-        // 입력 검증
         if (!email.trim()) {
             Alert.alert('알림', '이메일을 입력해주세요.');
             return;
         }
 
-        if (!validateEmail(email.trim())) {
+        if (!validateEmail(email)) {
             Alert.alert('알림', '올바른 이메일 형식을 입력해주세요.');
             return;
         }
@@ -46,18 +44,37 @@ const LoginScreen = ({ navigation }) => {
 
         setLoading(true);
         try {
-            console.log('로그인 시도:', email);
-            
-            const result = await loginWithEmail(email.trim(), password.trim());
-            
-            if (result.success) {
-                console.log('로그인 성공');
-                // AuthProvider가 자동으로 메인 화면으로 이동시킴
-            }
+            await signInWithEmailAndPassword(auth, email, password);
+            // AuthContext에서 자동으로 백엔드 로그인 처리됨
+            Alert.alert('로그인 성공', '환영합니다!');
         } catch (error) {
             console.error('로그인 실패:', error);
             
-            const errorMessage = getErrorMessage(error);
+            let errorMessage = '로그인에 실패했습니다.';
+            
+            switch (error.code) {
+                case 'auth/user-not-found':
+                    errorMessage = '존재하지 않는 계정입니다.';
+                    break;
+                case 'auth/wrong-password':
+                    errorMessage = '비밀번호가 올바르지 않습니다.';
+                    break;
+                case 'auth/invalid-email':
+                    errorMessage = '올바르지 않은 이메일 형식입니다.';
+                    break;
+                case 'auth/user-disabled':
+                    errorMessage = '비활성화된 계정입니다.';
+                    break;
+                case 'auth/too-many-requests':
+                    errorMessage = '너무 많은 시도가 있었습니다. 잠시 후 다시 시도해주세요.';
+                    break;
+                case 'auth/network-request-failed':
+                    errorMessage = '네트워크 연결을 확인해주세요.';
+                    break;
+                default:
+                    errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
+            }
+            
             Alert.alert('로그인 실패', errorMessage);
         } finally {
             setLoading(false);
@@ -66,14 +83,6 @@ const LoginScreen = ({ navigation }) => {
 
     const handleRegister = () => {
         navigation.navigate('Register');
-    };
-
-    const handleForgotPassword = () => {
-        Alert.alert(
-            '비밀번호 재설정',
-            '비밀번호 재설정 기능은 추후 구현 예정입니다.',
-            [{ text: '확인' }]
-        );
     };
 
     return (
@@ -92,39 +101,33 @@ const LoginScreen = ({ navigation }) => {
 
                     {/* 입력 폼 영역 */}
                     <View style={styles.formContainer}>
-                        <View style={styles.inputContainer}>
-                            <Text style={styles.inputLabel}>이메일</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="이메일을 입력하세요"
-                                placeholderTextColor="#999"
-                                value={email}
-                                onChangeText={setEmail}
-                                keyboardType="email-address"
-                                autoCapitalize="none"
-                                autoCorrect={false}
-                                editable={!loading}
-                                allowFontScaling={false}
-                                textAlignVertical="center"
-                            />
-                        </View>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="이메일"
+                            placeholderTextColor="#999"
+                            value={email}
+                            onChangeText={setEmail}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            keyboardType="email-address"
+                            editable={!loading}
+                            allowFontScaling={false}
+                            textAlignVertical="center"
+                        />
 
-                        <View style={styles.inputContainer}>
-                            <Text style={styles.inputLabel}>비밀번호</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="비밀번호를 입력하세요"
-                                placeholderTextColor="#999"
-                                value={password}
-                                onChangeText={setPassword}
-                                secureTextEntry
-                                autoCapitalize="none"
-                                autoCorrect={false}
-                                editable={!loading}
-                                allowFontScaling={false}
-                                textAlignVertical="center"
-                            />
-                        </View>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="비밀번호"
+                            placeholderTextColor="#999"
+                            value={password}
+                            onChangeText={setPassword}
+                            secureTextEntry
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            editable={!loading}
+                            allowFontScaling={false}
+                            textAlignVertical="center"
+                        />
 
                         <TouchableOpacity
                             style={[styles.loginButton, loading && styles.loginButtonDisabled]}
@@ -134,43 +137,17 @@ const LoginScreen = ({ navigation }) => {
                             {loading ? (
                                 <ActivityIndicator size="small" color="#fff" />
                             ) : (
-                                <Text style={styles.loginButtonText}>로그인</Text>
+                                <Text style={styles.loginButtonText}>로그인하기</Text>
                             )}
                         </TouchableOpacity>
                     </View>
 
-                    {/* 링크 섹션 */}
-                    <View style={styles.linksContainer}>
-                        <TouchableOpacity 
-                            onPress={handleForgotPassword} 
-                            disabled={loading}
-                            style={styles.linkButton}
-                        >
-                            <Text style={styles.linkText}>비밀번호를 잊으셨나요?</Text>
+                    {/* 회원가입 링크 */}
+                    <View style={styles.registerContainer}>
+                        <TouchableOpacity onPress={handleRegister} disabled={loading}>
+                            <Text style={styles.registerText}>계정이 없으신가요? 회원가입</Text>
                         </TouchableOpacity>
-
-                        <View style={styles.registerContainer}>
-                            <Text style={styles.registerPrompt}>계정이 없으신가요? </Text>
-                            <TouchableOpacity 
-                                onPress={handleRegister} 
-                                disabled={loading}
-                            >
-                                <Text style={styles.registerLink}>회원가입</Text>
-                            </TouchableOpacity>
-                        </View>
                     </View>
-
-                    {/* 개발/테스트를 위한 안내 */}
-                    {__DEV__ && (
-                        <View style={styles.devContainer}>
-                            <Text style={styles.devText}>
-                                개발용: Firebase 인증 시스템 사용
-                            </Text>
-                            <Text style={styles.devSubText}>
-                                실제 이메일/비밀번호로 회원가입 후 로그인
-                            </Text>
-                        </View>
-                    )}
                 </View>
             </KeyboardAvoidingView>
         </SafeAreaView>
@@ -192,20 +169,10 @@ const styles = StyleSheet.create({
     },
     logoContainer: {
         alignItems: 'center',
-        marginBottom: 40,
+        marginBottom: 35,
     },
     formContainer: {
-        marginBottom: 30,
-    },
-    inputContainer: {
         marginBottom: 20,
-    },
-    inputLabel: {
-        fontSize: 14,
-        fontFamily: 'SUIT-Medium',
-        color: '#333',
-        marginBottom: 8,
-        letterSpacing: -0.3,
     },
     input: {
         height: 52,
@@ -216,6 +183,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontFamily: 'SUIT-Regular',
         color: '#4B4B4B',
+        marginBottom: 16,
         borderWidth: 1,
         borderColor: '#90D1BE',
         allowFontScaling: false,
@@ -231,7 +199,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: 10,
+        marginTop: 8,
     },
     loginButtonDisabled: {
         opacity: 0.7,
@@ -242,55 +210,14 @@ const styles = StyleSheet.create({
         fontFamily: 'SUIT-SemiBold',
         letterSpacing: -0.4,
     },
-    linksContainer: {
-        alignItems: 'center',
-    },
-    linkButton: {
-        marginBottom: 16,
-    },
-    linkText: {
-        fontSize: 14,
-        fontFamily: 'SUIT-Medium',
-        color: '#90D1BE',
-        letterSpacing: -0.35,
-    },
     registerContainer: {
-        flexDirection: 'row',
         alignItems: 'center',
     },
-    registerPrompt: {
+    registerText: {
         fontSize: 14,
         fontFamily: 'SUIT-Medium',
         color: '#666',
         letterSpacing: -0.35,
-    },
-    registerLink: {
-        fontSize: 14,
-        fontFamily: 'SUIT-SemiBold',
-        color: '#0D2525',
-        letterSpacing: -0.35,
-    },
-    devContainer: {
-        marginTop: 30,
-        padding: 15,
-        backgroundColor: '#F0F8FF',
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#B3D9FF',
-    },
-    devText: {
-        fontSize: 12,
-        color: '#1E90FF',
-        fontFamily: 'SUIT-SemiBold',
-        textAlign: 'center',
-        marginBottom: 4,
-    },
-    devSubText: {
-        fontSize: 11,
-        color: '#4682B4',
-        fontFamily: 'SUIT-Medium',
-        textAlign: 'center',
-        lineHeight: 14,
     },
 });
 
