@@ -12,26 +12,28 @@ import {
     KeyboardAvoidingView,
     Platform
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../config/firebaseConfig';
 import LoginLogo from '../assets/icons/LoginLogo.svg';
-import { useAuth } from '../AuthContext';
 
 const LoginScreen = ({ navigation }) => {
-    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const { login } = useAuth();
-
-    // 더미 로그인 데이터
-    const dummyUser = {
-        username: 'testuser',
-        password: 'password123'
+    const validateEmail = (email) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
     };
 
     const handleLogin = async () => {
-        if (!username.trim()) {
-            Alert.alert('알림', '아이디를 입력해주세요.');
+        if (!email.trim()) {
+            Alert.alert('알림', '이메일을 입력해주세요.');
+            return;
+        }
+
+        if (!validateEmail(email)) {
+            Alert.alert('알림', '올바른 이메일 형식을 입력해주세요.');
             return;
         }
 
@@ -42,43 +44,42 @@ const LoginScreen = ({ navigation }) => {
 
         setLoading(true);
         try {
-            // 더미 로그인 검증
-            setTimeout(async () => {
-                if (username.trim() === dummyUser.username && password.trim() === dummyUser.password) {
-                    // 로그인 성공
-                    const userData = {
-                        id: 1,
-                        username: 'testuser',
-                        email: 'test@example.com',
-                        nickname: '테스트유저'
-                    };
-
-                    const token = 'dummy_jwt_token_12345';
-                    const refreshToken = 'dummy_refresh_token_67890';
-
-                    // AuthContext의 login 함수 사용
-                    const success = await login(userData, token, refreshToken);
-
-                    setLoading(false);
-
-                    if (success) {
-                        Alert.alert('로그인 성공', `${userData.nickname}님 환영합니다!`);
-                    } else {
-                        Alert.alert('로그인 실패', '로그인 정보 저장 중 오류가 발생했습니다.');
-                    }
-                } else {
-                    // 로그인 실패
-                    setLoading(false);
-                    Alert.alert('로그인 실패', '아이디 또는 비밀번호가 올바르지 않습니다.');
-                }
-            }, 1500);
+            await signInWithEmailAndPassword(auth, email, password);
+            // AuthContext에서 자동으로 백엔드 로그인 처리됨
+            Alert.alert('로그인 성공', '환영합니다!');
         } catch (error) {
             console.error('로그인 실패:', error);
+            
+            let errorMessage = '로그인에 실패했습니다.';
+            
+            switch (error.code) {
+                case 'auth/user-not-found':
+                    errorMessage = '존재하지 않는 계정입니다.';
+                    break;
+                case 'auth/wrong-password':
+                    errorMessage = '비밀번호가 올바르지 않습니다.';
+                    break;
+                case 'auth/invalid-email':
+                    errorMessage = '올바르지 않은 이메일 형식입니다.';
+                    break;
+                case 'auth/user-disabled':
+                    errorMessage = '비활성화된 계정입니다.';
+                    break;
+                case 'auth/too-many-requests':
+                    errorMessage = '너무 많은 시도가 있었습니다. 잠시 후 다시 시도해주세요.';
+                    break;
+                case 'auth/network-request-failed':
+                    errorMessage = '네트워크 연결을 확인해주세요.';
+                    break;
+                default:
+                    errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
+            }
+            
+            Alert.alert('로그인 실패', errorMessage);
+        } finally {
             setLoading(false);
-            Alert.alert('로그인 실패', '로그인 중 오류가 발생했습니다.');
         }
     };
-
 
     const handleRegister = () => {
         navigation.navigate('Register');
@@ -102,12 +103,13 @@ const LoginScreen = ({ navigation }) => {
                     <View style={styles.formContainer}>
                         <TextInput
                             style={styles.input}
-                            placeholder="아이디"
+                            placeholder="이메일"
                             placeholderTextColor="#999"
-                            value={username}
-                            onChangeText={setUsername}
+                            value={email}
+                            onChangeText={setEmail}
                             autoCapitalize="none"
                             autoCorrect={false}
+                            keyboardType="email-address"
                             editable={!loading}
                             allowFontScaling={false}
                             textAlignVertical="center"
