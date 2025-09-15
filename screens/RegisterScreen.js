@@ -6,15 +6,16 @@ import {
     ScrollView,
     TextInput,
     TouchableOpacity,
-    SafeAreaView,
     StatusBar,
     Alert,
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from '../config/firebaseConfig';
+import { loginWithFirebase } from '../services/apiService';
 import CustomHeader from '../components/CustomHeader';
 
 const RegisterScreen = ({ navigation }) => {
@@ -94,10 +95,10 @@ const RegisterScreen = ({ navigation }) => {
 
         setLoading(true);
         try {
-            // Firebase 회원가입
+            // 1. Firebase 회원가입
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             
-            // Firebase 프로필 업데이트 (displayName에 이름과 닉네임 저장)
+            // 2. Firebase 프로필 업데이트
             await updateProfile(userCredential.user, {
                 displayName: JSON.stringify({
                     name: name.trim(),
@@ -105,21 +106,34 @@ const RegisterScreen = ({ navigation }) => {
                 })
             });
 
-            // AuthContext에서 자동으로 백엔드 회원가입 처리
-            Alert.alert(
-                '회원가입 완료',
-                '회원가입이 성공적으로 완료되었습니다.',
-                [
-                    {
-                        text: '확인',
-                        onPress: () => {
-                            // AuthContext에서 자동으로 로그인 처리되므로 별도 네비게이션 불필요
+            // 3. Firebase ID 토큰 가져오기
+            const idToken = await userCredential.user.getIdToken();
+            
+            // 4. 백엔드에 회원가입 요청
+            const response = await loginWithFirebase(idToken);
+            
+            if (response.isSuccess) {
+                Alert.alert(
+                    '회원가입 완료',
+                    '회원가입이 성공적으로 완료되었습니다.',
+                    [
+                        {
+                            text: '확인',
+                            onPress: () => {
+                                // AuthContext에서 자동으로 로그인 처리됨
+                            }
                         }
-                    }
-                ]
-            );
+                    ]
+                );
+            } else {
+                throw new Error('백엔드 회원가입 실패: ' + response.message);
+            }
         } catch (error) {
-            console.error('회원가입 실패:', error);
+            console.error('회원가입 실패 상세:', {
+                code: error.code,
+                message: error.message,
+                stack: error.stack
+            });
             
             let errorMessage = '회원가입 중 오류가 발생했습니다.';
             
