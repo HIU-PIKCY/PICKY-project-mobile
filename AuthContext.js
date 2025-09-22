@@ -20,6 +20,20 @@ export const AuthProvider = ({ children }) => {
     // 서버 API URL
     const API_BASE_URL = 'http://13.124.86.254';
 
+    // 토큰 초기화 함수
+    const initializeTokens = async (accessToken, refreshToken) => {
+        try {
+            if (accessToken && refreshToken) {
+                await AsyncStorage.setItem('accessToken', accessToken);
+                await AsyncStorage.setItem('refreshToken', refreshToken);
+                console.log('토큰 초기화 완료');
+            }
+        } catch (error) {
+            console.error('토큰 초기화 실패:', error);
+            throw error;
+        }
+    };
+
     // 백엔드 로그인 함수
     const loginWithBackend = async (firebaseIdToken) => {
         try {
@@ -46,9 +60,7 @@ export const AuthProvider = ({ children }) => {
 
             if (data.isSuccess && data.result && data.result.tokenInfo) {
                 // 토큰 저장
-                await AsyncStorage.setItem('accessToken', data.result.tokenInfo.accessToken);
-                await AsyncStorage.setItem('refreshToken', data.result.tokenInfo.refreshToken);
-                console.log('토큰 저장 완료');
+                await initializeTokens(data.result.tokenInfo.accessToken, data.result.tokenInfo.refreshToken);
                 return data;
             } else {
                 throw new Error(data.message || '백엔드 로그인에 실패했습니다.');
@@ -186,8 +198,7 @@ export const AuthProvider = ({ children }) => {
             const data = await response.json();
             
             if (data.isSuccess && data.result) {
-                await AsyncStorage.setItem('accessToken', data.result.accessToken);
-                await AsyncStorage.setItem('refreshToken', data.result.refreshToken);
+                await initializeTokens(data.result.accessToken, data.result.refreshToken);
                 console.log('토큰 갱신 성공');
                 return data.result.accessToken;
             } else {
@@ -248,6 +259,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         refreshToken,
         authenticatedFetch,
+        initializeTokens,
     };
 
     return (

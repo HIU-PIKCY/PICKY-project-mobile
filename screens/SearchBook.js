@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
+import {
+  View,
+  Text,
+  StyleSheet,
   SafeAreaView,
   TouchableOpacity,
   TextInput,
@@ -16,6 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import CustomHeader from '../components/CustomHeader';
+import { useAuth } from '../AuthContext'; // AuthContext 추가
 
 const SearchBookScreen = ({ navigation }) => {
   const [searchType, setSearchType] = useState('통합검색');
@@ -25,9 +26,12 @@ const SearchBookScreen = ({ navigation }) => {
   const [hasSearched, setHasSearched] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // AuthContext에서 authenticatedFetch 가져오기
+  const { authenticatedFetch } = useAuth();
+
   // 서버 API URL
   const API_BASE_URL = 'http://13.124.86.254';
-  
+
   // 화면에 포커스될 때마다 검색 상태 초기화 - 검색 결과는 유지
   useFocusEffect(
     React.useCallback(() => {
@@ -36,7 +40,7 @@ const SearchBookScreen = ({ navigation }) => {
       setLoading(false);
     }, [])
   );
-  
+
   // 검색 타입 옵션
   const searchTypes = [
     { value: '통합검색', label: '통합검색' },
@@ -69,10 +73,10 @@ const SearchBookScreen = ({ navigation }) => {
 
     setLoading(true);
     setHasSearched(true);
-    
+
     try {
       const searchTypeParam = getSearchTypeParam(searchType);
-      
+
       // URL 파라미터로 변경
       const params = new URLSearchParams({
         keyword: searchQuery.trim(),
@@ -81,13 +85,12 @@ const SearchBookScreen = ({ navigation }) => {
         size: '20'
       });
 
-      console.log('요청 URL:', `${API_BASE_URL}/api/books/search?${params.toString()}`);
-      
-      const response = await fetch(`${API_BASE_URL}/api/books/search?${params.toString()}`, {
+      const url = `${API_BASE_URL}/api/books/search?${params.toString()}`;
+      console.log('요청 URL:', url);
+
+      // authenticatedFetch 사용으로 변경
+      const response = await authenticatedFetch(url, {
         method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        }
       });
 
       console.log('응답 상태:', response.status);
@@ -100,24 +103,29 @@ const SearchBookScreen = ({ navigation }) => {
 
       const data = await response.json();
       console.log('응답 데이터:', data);
-      
+
       if (data.isSuccess) {
-        setSearchResults(data.result || []);
+        setSearchResults(data.result?.items || []);
       } else {
         throw new Error(data.message || '검색에 실패했습니다.');
       }
-      
+
     } catch (error) {
       console.error('검색 실패:', error);
-      
+
       let errorMessage = '검색 중 오류가 발생했습니다.';
-      
+
       if (error.message.includes('DataBufferLimitException') || error.message.includes('서버 에러')) {
         errorMessage = '검색 결과가 너무 많습니다. 더 구체적인 검색어를 입력해주세요.';
       } else if (error.message.includes('Network request failed')) {
         errorMessage = '네트워크 연결을 확인해주세요.';
+      } else if (error.message.includes('액세스 토큰이 없습니다')) {
+        errorMessage = '로그인이 필요합니다. 다시 로그인해주세요.';
+        // 로그인 화면으로 이동하거나 로그아웃 처리할 수 있음
+        navigation.navigate('Login');
+        return;
       }
-      
+
       Alert.alert('검색 오류', errorMessage);
       setSearchResults([]);
     } finally {
@@ -128,10 +136,10 @@ const SearchBookScreen = ({ navigation }) => {
   const handleBookPress = (book) => {
     // ISBN이 있는 경우에만 상세 페이지로 이동
     if (book.isbn) {
-      navigation.navigate('BookDetail', { 
+      navigation.navigate('BookDetail', {
         isbn: book.isbn,
         // 기본 정보도 함께 전달
-        bookData: book 
+        bookData: book
       });
     } else {
       Alert.alert('알림', '이 도서의 상세 정보를 불러올 수 없습니다.');
@@ -139,8 +147,8 @@ const SearchBookScreen = ({ navigation }) => {
   };
 
   const renderBook = (book, index) => (
-    <TouchableOpacity 
-      key={book.isbn || `book-${index}`} 
+    <TouchableOpacity
+      key={book.isbn || `book-${index}`}
       style={[
         styles.bookCard,
         (index + 1) % 3 === 0 && { marginRight: 0 }
@@ -149,8 +157,8 @@ const SearchBookScreen = ({ navigation }) => {
       activeOpacity={0.7}
     >
       {book.coverImage ? (
-        <Image 
-          source={{ uri: book.coverImage }} 
+        <Image
+          source={{ uri: book.coverImage }}
           style={styles.bookCover}
           resizeMode="cover"
           onError={() => {
@@ -172,8 +180,8 @@ const SearchBookScreen = ({ navigation }) => {
       <Ionicons name="search-outline" size={48} color="#CCCCCC" />
       <Text style={styles.emptyStateTitle}>도서를 검색해보세요</Text>
       <Text style={styles.emptyStateSubtitle}>
-        {searchType === '통합검색' ? '도서명이나 작가명' : 
-         searchType === '제목검색' ? '도서명' : '작가명'}을 입력해주세요
+        {searchType === '통합검색' ? '도서명이나 작가명' :
+          searchType === '제목검색' ? '도서명' : '작가명'}을 입력해주세요
       </Text>
     </View>
   );
@@ -195,7 +203,7 @@ const SearchBookScreen = ({ navigation }) => {
       animationType="fade"
       onRequestClose={() => setDropdownVisible(false)}
     >
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.modalOverlay}
         activeOpacity={1}
         onPress={() => setDropdownVisible(false)}
@@ -231,7 +239,7 @@ const SearchBookScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <CustomHeader 
+      <CustomHeader
         title="도서 검색"
         onBackPress={() => navigation.goBack()}
       />
@@ -239,7 +247,7 @@ const SearchBookScreen = ({ navigation }) => {
       {/* Search Section */}
       <View style={styles.searchSection}>
         <View style={styles.searchRow}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.searchTypeButton}
             onPress={() => setDropdownVisible(true)}
             activeOpacity={0.7}
@@ -247,7 +255,7 @@ const SearchBookScreen = ({ navigation }) => {
             <Ionicons name="chevron-down-outline" size={16} color="#666666" />
             <Text style={styles.searchTypeText}>{searchType}</Text>
           </TouchableOpacity>
-          
+
           <View style={styles.searchInputContainer}>
             <TextInput
               style={styles.searchInput}
@@ -259,8 +267,8 @@ const SearchBookScreen = ({ navigation }) => {
               editable={!loading}
             />
           </View>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={[styles.searchButton, loading && styles.searchButtonDisabled]}
             onPress={handleSearch}
             disabled={loading}
