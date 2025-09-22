@@ -13,9 +13,8 @@ import {
     Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
 import { auth } from '../config/firebaseConfig';
-import { loginWithFirebase } from '../services/apiService';
 import CustomHeader from '../components/CustomHeader';
 
 const RegisterScreen = ({ navigation }) => {
@@ -27,6 +26,9 @@ const RegisterScreen = ({ navigation }) => {
     
     const [loading, setLoading] = useState(false);
     const [passwordMismatch, setPasswordMismatch] = useState(false);
+
+    // 서버 API URL
+    const API_BASE_URL = 'http://13.124.86.254';
 
     const handleGoBack = () => {
         navigation.goBack();
@@ -90,43 +92,94 @@ const RegisterScreen = ({ navigation }) => {
         return true;
     };
 
+    const signUpWithBackend = async (firebaseIdToken) => {
+        try {
+            console.log('백엔드 회원가입 요청 시작');
+            
+            const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${firebaseIdToken}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: name.trim(),
+                    nickname: nickname.trim()
+                })
+            });
+
+            console.log('백엔드 응답 상태:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('백엔드 에러 응답:', errorText);
+                throw new Error(`백엔드 회원가입 실패: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('백엔드 회원가입 성공:', data);
+
+            if (data.isSuccess) {
+                return data;
+            } else {
+                throw new Error(data.message || '백엔드 회원가입에 실패했습니다.');
+            }
+        } catch (error) {
+            console.error('백엔드 회원가입 에러:', error);
+            throw error;
+        }
+    };
+
     const handleRegister = async () => {
         if (!validateForm()) return;
 
         setLoading(true);
         try {
-            // 1. Firebase 회원가입
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            console.log('회원가입 프로세스 시작');
             
-            // 2. Firebase 프로필 업데이트
+            // 1. Firebase 회원가입
+            console.log('Firebase 회원가입 시도');
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            console.log('Firebase 회원가입 성공:', userCredential.user.uid);
+            
+            // 2. Firebase 프로필 업데이트 (선택사항 - 백엔드에서 주로 관리)
             await updateProfile(userCredential.user, {
                 displayName: JSON.stringify({
                     name: name.trim(),
                     nickname: nickname.trim()
                 })
             });
+            console.log('Firebase 프로필 업데이트 완료');
 
             // 3. Firebase ID 토큰 가져오기
+            console.log('Firebase ID 토큰 가져오기');
             const idToken = await userCredential.user.getIdToken();
+            console.log('Firebase ID 토큰 획득 성공');
             
             // 4. 백엔드에 회원가입 요청
-            const response = await loginWithFirebase(idToken);
+            console.log('백엔드 회원가입 요청');
+            const backendResponse = await signUpWithBackend(idToken);
             
-            if (response.isSuccess) {
+            if (backendResponse.isSuccess) {
+                console.log('전체 회원가입 프로세스 완료');
+                
+                // 회원가입 성공 시 Firebase에서 로그아웃하고 로그인 화면으로 이동
+                await signOut(auth);
+                
                 Alert.alert(
                     '회원가입 완료',
-                    '회원가입이 성공적으로 완료되었습니다.',
+                    '회원가입이 성공적으로 완료되었습니다. 로그인해주세요.',
                     [
                         {
                             text: '확인',
                             onPress: () => {
-                                // AuthContext에서 자동으로 로그인 처리됨
+                                navigation.navigate('Login');
                             }
                         }
                     ]
                 );
             } else {
-                throw new Error('백엔드 회원가입 실패: ' + response.message);
+                throw new Error('백엔드 회원가입 실패: ' + backendResponse.message);
             }
         } catch (error) {
             console.error('회원가입 실패 상세:', {
@@ -137,24 +190,37 @@ const RegisterScreen = ({ navigation }) => {
             
             let errorMessage = '회원가입 중 오류가 발생했습니다.';
             
-            switch (error.code) {
-                case 'auth/email-already-in-use':
-                    errorMessage = '이미 가입된 이메일입니다.';
-                    break;
-                case 'auth/weak-password':
-                    errorMessage = '비밀번호가 너무 약합니다. 6자 이상 입력해주세요.';
-                    break;
-                case 'auth/invalid-email':
-                    errorMessage = '올바르지 않은 이메일 형식입니다.';
-                    break;
-                case 'auth/operation-not-allowed':
-                    errorMessage = '이메일/비밀번호 회원가입이 비활성화되어 있습니다.';
-                    break;
-                case 'auth/network-request-failed':
-                    errorMessage = '네트워크 연결을 확인해주세요.';
-                    break;
-                default:
-                    errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
+            // Firebase 에러 처리
+            if (error.code) {
+                switch (error.code) {
+                    case 'auth/email-already-in-use':
+                        errorMessage = '이미 가입된 이메일입니다.';
+                        break;
+                    case 'auth/weak-password':
+                        errorMessage = '비밀번호가 너무 약합니다. 6자 이상 입력해주세요.';
+                        break;
+                    case 'auth/invalid-email':
+                        errorMessage = '올바르지 않은 이메일 형식입니다.';
+                        break;
+                    case 'auth/operation-not-allowed':
+                        errorMessage = '이메일/비밀번호 회원가입이 비활성화되어 있습니다.';
+                        break;
+                    case 'auth/network-request-failed':
+                        errorMessage = '네트워크 연결을 확인해주세요.';
+                        break;
+                    default:
+                        errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
+                }
+            } 
+            // 백엔드 에러 처리
+            else if (error.message.includes('백엔드')) {
+                if (error.message.includes('400')) {
+                    errorMessage = '이미 가입된 회원이거나 잘못된 요청입니다.';
+                } else if (error.message.includes('401')) {
+                    errorMessage = 'Firebase 인증에 실패했습니다.';
+                } else {
+                    errorMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+                }
             }
             
             Alert.alert('회원가입 실패', errorMessage);
@@ -255,7 +321,7 @@ const RegisterScreen = ({ navigation }) => {
                         <Text style={styles.label}>닉네임</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="사용할 닉네임을 입력해주세요"
+                            placeholder="사용할 닉네임을 입력해주세요 (2자 이상)"
                             placeholderTextColor="#999"
                             value={nickname}
                             onChangeText={setNickname}

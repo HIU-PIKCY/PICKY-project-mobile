@@ -44,9 +44,10 @@ const LoginScreen = ({ navigation }) => {
 
         setLoading(true);
         try {
+            console.log('Firebase 로그인 시도:', email);
             await signInWithEmailAndPassword(auth, email, password);
-            // AuthContext에서 자동으로 백엔드 로그인 처리됨
-            Alert.alert('로그인 성공', '환영합니다!');
+            // AuthContext에서 자동으로 백엔드 로그인 처리 후 메인 화면으로 이동
+            console.log('Firebase 로그인 성공 - AuthContext에서 메인 화면으로 이동 처리');
         } catch (error) {
             console.error('로그인 실패:', error);
             
@@ -72,7 +73,12 @@ const LoginScreen = ({ navigation }) => {
                     errorMessage = '네트워크 연결을 확인해주세요.';
                     break;
                 default:
-                    errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
+                    // 백엔드 에러 처리 추가
+                    if (error.message && error.message.includes('가입되지 않은')) {
+                        errorMessage = '가입되지 않은 회원입니다. 회원가입을 먼저 진행해주세요.';
+                    } else {
+                        errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
+                    }
             }
             
             Alert.alert('로그인 실패', errorMessage);
