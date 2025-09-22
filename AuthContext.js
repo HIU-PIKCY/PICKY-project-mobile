@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from './config/firebaseConfig';
-import apiService, { api } from './services/apiService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AuthContext = createContext({});
 
@@ -17,11 +17,90 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    // 서버 API URL
+    const API_BASE_URL = 'http://13.124.86.254';
+
+    // 토큰 초기화 함수
+    const initializeTokens = async (accessToken, refreshToken) => {
+        try {
+            if (accessToken && refreshToken) {
+                await AsyncStorage.setItem('accessToken', accessToken);
+                await AsyncStorage.setItem('refreshToken', refreshToken);
+                console.log('토큰 초기화 완료');
+            }
+        } catch (error) {
+            console.error('토큰 초기화 실패:', error);
+            throw error;
+        }
+    };
+
+    // 백엔드 로그인 함수
+    const loginWithBackend = async (firebaseIdToken) => {
+        try {
+            console.log('백엔드 로그인 요청 시작');
+            
+            const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${firebaseIdToken}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            console.log('백엔드 로그인 응답 상태:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('백엔드 로그인 에러:', errorText);
+                throw new Error(`백엔드 로그인 실패: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('백엔드 로그인 성공:', data);
+
+            if (data.isSuccess && data.result && data.result.tokenInfo) {
+                // 토큰 저장
+                await initializeTokens(data.result.tokenInfo.accessToken, data.result.tokenInfo.refreshToken);
+                return data;
+            } else {
+                throw new Error(data.message || '백엔드 로그인에 실패했습니다.');
+            }
+        } catch (error) {
+            console.error('백엔드 로그인 에러:', error);
+            throw error;
+        }
+    };
+
+    // 백엔드 로그아웃 함수
+    const logoutWithBackend = async () => {
+        try {
+            const accessToken = await AsyncStorage.getItem('accessToken');
+            
+            if (accessToken) {
+                console.log('백엔드 로그아웃 요청');
+                
+                const response = await fetch(`${API_BASE_URL}/api/auth/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                console.log('백엔드 로그아웃 응답 상태:', response.status);
+                
+                if (response.ok) {
+                    console.log('백엔드 로그아웃 성공');
+                }
+            }
+        } catch (error) {
+            console.error('백엔드 로그아웃 에러:', error);
+            // 백엔드 로그아웃 실패해도 로컬 토큰은 삭제
+        }
+    };
+
     // Firebase 인증 상태 변화 감지
     useEffect(() => {
-        // 앱 시작 시 저장된 토큰 초기화
-        apiService.initializeTokens();
-
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             console.log('Firebase 인증 상태 변화:', firebaseUser ? '로그인됨' : '로그아웃됨');
             
@@ -32,7 +111,7 @@ export const AuthProvider = ({ children }) => {
                     const idToken = await firebaseUser.getIdToken();
                     
                     try {
-                        const backendResponse = await api.login(idToken);
+                        const backendResponse = await loginWithBackend(idToken);
                         
                         if (backendResponse.isSuccess) {
                             setUser(firebaseUser);
@@ -55,14 +134,14 @@ export const AuthProvider = ({ children }) => {
                 } else {
                     // Firebase 사용자가 없으면 로그아웃 처리
                     console.log('Firebase 사용자 없음, 로그아웃 처리');
-                    await apiService.clearTokens();
+                    await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
                     setUser(null);
                 }
             } catch (error) {
                 console.error('인증 상태 변화 처리 중 에러:', error);
                 // 에러 발생 시 로그아웃 처리
                 setUser(null);
-                await apiService.clearTokens();
+                await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
             } finally {
                 setLoading(false);
             }
@@ -76,11 +155,14 @@ export const AuthProvider = ({ children }) => {
         try {
             console.log('로그아웃 프로세스 시작');
             
-            // 1. 백엔드 로그아웃 및 토큰 클리어
-            await api.logout();
+            // 1. 백엔드 로그아웃
+            await logoutWithBackend();
             
             // 2. Firebase 로그아웃
             await signOut(auth);
+            
+            // 3. 로컬 토큰 삭제
+            await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
             
             console.log('로그아웃 완료');
             return true;
@@ -90,13 +172,94 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // 토큰 갱신 함수
+    const refreshToken = async () => {
+        try {
+            const storedRefreshToken = await AsyncStorage.getItem('refreshToken');
+            
+            if (!storedRefreshToken) {
+                throw new Error('리프레시 토큰이 없습니다.');
+            }
+
+            console.log('토큰 갱신 요청');
+            
+            const response = await fetch(`${API_BASE_URL}/api/auth/reissue`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${storedRefreshToken}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`토큰 갱신 실패: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (data.isSuccess && data.result) {
+                await initializeTokens(data.result.accessToken, data.result.refreshToken);
+                console.log('토큰 갱신 성공');
+                return data.result.accessToken;
+            } else {
+                throw new Error('토큰 갱신 응답이 올바르지 않습니다.');
+            }
+        } catch (error) {
+            console.error('토큰 갱신 실패:', error);
+            // 토큰 갱신 실패 시 로그아웃 처리
+            await logout();
+            throw error;
+        }
+    };
+
+    // API 요청을 위한 인증된 fetch 함수
+    const authenticatedFetch = async (url, options = {}) => {
+        try {
+            let accessToken = await AsyncStorage.getItem('accessToken');
+            
+            if (!accessToken) {
+                throw new Error('액세스 토큰이 없습니다.');
+            }
+
+            // 첫 번째 요청
+            const response = await fetch(url, {
+                ...options,
+                headers: {
+                    ...options.headers,
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            // 토큰 만료 시 갱신 후 재시도
+            if (response.status === 401) {
+                console.log('토큰 만료, 갱신 후 재시도');
+                accessToken = await refreshToken();
+                
+                return fetch(url, {
+                    ...options,
+                    headers: {
+                        ...options.headers,
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+            }
+
+            return response;
+        } catch (error) {
+            console.error('인증된 요청 실패:', error);
+            throw error;
+        }
+    };
+
     const value = {
         user,
         loading,
         logout,
-        // API 서비스 인스턴스도 제공
-        apiService,
-        api,
+        refreshToken,
+        authenticatedFetch,
+        initializeTokens,
     };
 
     return (
