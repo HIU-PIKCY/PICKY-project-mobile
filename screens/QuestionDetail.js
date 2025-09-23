@@ -371,12 +371,16 @@ const QuestionDetail = ({ navigation, route }) => {
         if (!question) return;
 
         try {
-            // authenticatedFetch 사용
-            const response = await authenticatedFetch(`${API_BASE_URL}/api/questions/${question.id}/like`, {
+            console.log('좋아요 처리 요청:', `${API_BASE_URL}/api/question-like/${question.id}/${currentUserMemberId}`);
+            
+            // authenticatedFetch 사용 - memberId 포함
+            const response = await authenticatedFetch(`${API_BASE_URL}/api/question-like/${question.id}/${currentUserMemberId}`, {
                 method: 'POST',
             });
 
             if (!response.ok) {
+                const errorText = await response.text();
+                console.error('좋아요 처리 에러:', errorText);
                 throw new Error(`좋아요 처리 실패! status: ${response.status}`);
             }
 
@@ -388,6 +392,8 @@ const QuestionDetail = ({ navigation, route }) => {
                     isLiked: !prev.isLiked,
                     likes: prev.isLiked ? prev.likes - 1 : prev.likes + 1
                 }));
+            } else {
+                throw new Error(data.message || '좋아요 처리에 실패했습니다.');
             }
         } catch (error) {
             console.error('좋아요 처리 실패:', error);
