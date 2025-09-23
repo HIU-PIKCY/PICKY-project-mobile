@@ -349,7 +349,13 @@ const QuestionDetail = ({ navigation, route }) => {
                             
                             if (data.isSuccess || response.status === 204) {
                                 Alert.alert('삭제 완료', '질문이 삭제되었습니다.', [
-                                    { text: '확인', onPress: () => navigation.goBack() }
+                                    { 
+                                        text: '확인', 
+                                        onPress: () => {
+                                            // 확실히 이전 화면으로 돌아가기
+                                            navigation.goBack();
+                                        }
+                                    }
                                 ]);
                             } else {
                                 throw new Error(data.message || '질문 삭제에 실패했습니다.');
@@ -460,9 +466,7 @@ const QuestionDetail = ({ navigation, route }) => {
         );
     };
 
-    // ===============================================
-    // 💡 인증된 API 호출 함수: 답변 등록
-    // ===============================================
+    // handleAddQuestion 함수 제거 (이제 QuestionPost에서 직접 API 호출)
     const handleAnswerSubmit = async (content, isAI = false) => {
         try {
             if (replyingTo) {
