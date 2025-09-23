@@ -1,4 +1,4 @@
-import React, { forwardRef, useState } from "react";
+import React, { forwardRef, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Modalize } from "react-native-modalize";
+import { useAuth } from "../AuthContext";
 import MintStar from "../assets/icons/MintStar.svg";
 
 const screenHeight = Dimensions.get("window").height;
@@ -25,6 +26,11 @@ export const AIQuestionSheet = forwardRef((props, ref) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedQuestion, setGeneratedQuestion] = useState(null);
   const [isSubmittingGenerated, setIsSubmittingGenerated] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
+
+  // AuthContext에서 authenticatedFetch 가져오기
+  const { authenticatedFetch } = useAuth();
+  const API_BASE_URL = 'http://13.124.86.254';
 
   const tags = [
     "작품의 주제와 의미",
@@ -50,6 +56,30 @@ export const AIQuestionSheet = forwardRef((props, ref) => {
     "작품 배경과 시대적 맥락": {
       title: "시대적 배경이 작품에 미친 영향은?",
       content: "작품이 쓰여진 시대적 배경과 사회적 상황이 작품 내용에 어떻게 반영되었는지 살펴보세요. 당시의 사회 문제나 가치관이 작품 속 인물들의 삶에 어떤 영향을 미쳤나요?"
+    }
+  };
+
+  // 사용자 프로필 로드
+  useEffect(() => {
+    loadUserProfile();
+  }, []);
+
+  const loadUserProfile = async () => {
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/members/profile`, {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        throw new Error(`프로필 조회 실패! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.isSuccess && data.result) {
+        setUserProfile(data.result);
+      }
+    } catch (error) {
+      console.error('사용자 프로필 로딩 실패:', error);
     }
   };
 
@@ -86,13 +116,14 @@ export const AIQuestionSheet = forwardRef((props, ref) => {
     setIsGenerating(true);
     
     try {
-      // 실제 구현 시 API 호출
-      // const response = await apiService.generateAIQuestion({
-      //   bookId: props.bookId,
-      //   category: selectedTag,
-      //   page: page ? parseInt(page) : null
+      // 실제 구현 시 AI 질문 생성 API 호출
+      // const response = await authenticatedFetch(`${API_BASE_URL}/api/books/${props.bookId}/ai-question`, {
+      //   method: 'POST',
+      //   body: JSON.stringify({
+      //     category: selectedTag,
+      //     page: page ? parseInt(page) : null
+      //   })
       // });
-      // setGeneratedQuestion(response.data);
 
       // 더미 AI 질문 생성 시뮬레이션
       setTimeout(() => {
@@ -113,37 +144,47 @@ export const AIQuestionSheet = forwardRef((props, ref) => {
   };
 
   const handleGeneratedQuestionSubmit = async () => {
-    if (!generatedQuestion) return;
+    if (!generatedQuestion || !userProfile || !props.bookId) return;
 
     setIsSubmittingGenerated(true);
     
     try {
-      // 실제 구현 시 API 호출
-      // await apiService.createQuestion(props.bookId, {
-      //   title: generatedQuestion.title,
-      //   content: generatedQuestion.content,
-      //   page: generatedQuestion.page,
-      //   isAI: true
-      // });
+      console.log('AI 질문 등록 요청:', `${API_BASE_URL}/api/books/${props.bookId}/questions/${userProfile.id}`);
 
-      // 부모 컴포넌트에 데이터 전달
-      if (props.onSubmit) {
-        props.onSubmit({
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/books/${props.bookId}/questions/${userProfile.id}`, {
+        method: 'POST',
+        body: JSON.stringify({
           title: generatedQuestion.title,
-          body: generatedQuestion.content,
-          page: generatedQuestion.page?.toString() || "",
-          isAI: true
-        });
+          content: generatedQuestion.content,
+          page: generatedQuestion.page || null
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('AI 질문 등록 에러:', errorText);
+        throw new Error(`AI 질문 등록 실패! status: ${response.status}`);
       }
 
-      resetAIForm();
-      ref.current?.close();
-      setIsSubmittingGenerated(false);
-      Alert.alert('완료', 'AI 질문이 등록되었습니다.');
+      const data = await response.json();
+      
+      if (data.isSuccess) {
+        // 부모 컴포넌트에 성공 알림
+        if (props.onSubmit) {
+          props.onSubmit();
+        }
+
+        resetAIForm();
+        ref.current?.close();
+        Alert.alert('완료', 'AI 질문이 등록되었습니다.');
+      } else {
+        throw new Error(data.message || 'AI 질문 등록에 실패했습니다.');
+      }
     } catch (error) {
       console.error('AI 질문 등록 실패:', error);
-      setIsSubmittingGenerated(false);
       Alert.alert('오류', 'AI 질문 등록 중 오류가 발생했습니다.');
+    } finally {
+      setIsSubmittingGenerated(false);
     }
   };
 
@@ -302,12 +343,41 @@ export const AIQuestionSheet = forwardRef((props, ref) => {
   );
 });
 
-export const QuestionWriteSheet = forwardRef(({ onSubmit }, ref) => {
+export const QuestionWriteSheet = forwardRef(({ onSubmit, bookId }, ref) => {
   const [page, setPage] = useState("");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
+
+  // AuthContext에서 authenticatedFetch 가져오기
+  const { authenticatedFetch } = useAuth();
+  const API_BASE_URL = 'http://13.124.86.254';
+
+  // 사용자 프로필 로드
+  useEffect(() => {
+    loadUserProfile();
+  }, []);
+
+  const loadUserProfile = async () => {
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/members/profile`, {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        throw new Error(`프로필 조회 실패! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.isSuccess && data.result) {
+        setUserProfile(data.result);
+      }
+    } catch (error) {
+      console.error('사용자 프로필 로딩 실패:', error);
+    }
+  };
 
   const resetForm = () => {
     setPage("");
@@ -328,27 +398,47 @@ export const QuestionWriteSheet = forwardRef(({ onSubmit }, ref) => {
       return;
     }
 
+    if (!userProfile || !bookId) {
+      Alert.alert("오류", "사용자 정보 또는 도서 정보가 없습니다.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      // 질문 데이터 생성
-      const questionData = {
-        title: title.trim(),
-        body: body.trim(),
-        page: page.trim(),
-        isAI: false
-      };
+      console.log('질문 등록 요청:', `${API_BASE_URL}/api/books/${bookId}/questions/${userProfile.id}`);
 
-      // 부모 컴포넌트에 데이터 전달
-      if (onSubmit) {
-        onSubmit(questionData);
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/books/${bookId}/questions/${userProfile.id}`, {
+        method: 'POST',
+        body: JSON.stringify({
+          title: title.trim(),
+          content: body.trim(),
+          page: page.trim() ? parseInt(page.trim()) : null
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('질문 등록 에러:', errorText);
+        throw new Error(`질문 등록 실패! status: ${response.status}`);
       }
 
-      // 폼 리셋
-      resetForm();
-      Keyboard.dismiss();
-      ref.current?.close();
-      Alert.alert('완료', '질문이 등록되었습니다.');
+      const data = await response.json();
+      
+      if (data.isSuccess) {
+        // 부모 컴포넌트에 성공 알림
+        if (onSubmit) {
+          onSubmit();
+        }
+
+        // 폼 리셋
+        resetForm();
+        Keyboard.dismiss();
+        ref.current?.close();
+        Alert.alert('완료', '질문이 등록되었습니다.');
+      } else {
+        throw new Error(data.message || '질문 등록에 실패했습니다.');
+      }
     } catch (error) {
       console.error('질문 등록 실패:', error);
       setIsSubmitting(false);
