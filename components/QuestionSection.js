@@ -24,8 +24,8 @@ const QuestionSection = ({ question, currentUserId, onLike, onDelete }) => {
     const renderUserProfile = (user) => {
         if (user.isAI) {
             return (
-                <View style={questionSectionStyles.aiIcon}>
-                    <Text style={questionSectionStyles.aiIconText}>AI</Text>
+                <View style={questionSectionStyle.aiIcon}>
+                    <Text style={questionSectionStyle.aiIconText}>AI</Text>
                 </View>
             );
         }
@@ -50,7 +50,7 @@ const QuestionSection = ({ question, currentUserId, onLike, onDelete }) => {
         );
     };
 
-    // 질문 작성자가 현재 사용자인지 확인
+    // 질문 작성자가 현재 사용자인지 확인 (닉네임으로 비교)
     const isQuestionOwner = question.authorId === currentUserId;
 
     const handleMenuPress = () => {

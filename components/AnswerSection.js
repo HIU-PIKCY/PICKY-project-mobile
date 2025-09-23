@@ -56,7 +56,7 @@ const AnswerSection = ({
     };
 
     const renderAnswer = (answer) => {
-        // 답변 작성자가 현재 사용자인지 확인
+        // 답변 작성자가 현재 사용자인지 확인 (닉네임으로 비교)
         const isAnswerOwner = answer.authorId === currentUserId;
 
         return (
@@ -76,6 +76,7 @@ const AnswerSection = ({
                     
                     {/* 답변 액션 버튼들 */}
                     <View style={answerSectionStyle.answerActions}>
+                        {/* 최상위 답변(level 0)에만 답글 작성 버튼 표시 */}
                         {answer.level === 0 && (
                             <TouchableOpacity 
                                 style={answerSectionStyle.actionButton} 
