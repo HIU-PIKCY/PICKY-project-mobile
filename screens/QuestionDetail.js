@@ -332,14 +332,16 @@ const QuestionDetail = ({ navigation, route }) => {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            console.log('질문 삭제 요청:', `${API_BASE_URL}/api/questions/${question.id}`);
+                            console.log('질문 삭제 요청:', `${API_BASE_URL}/api/questions/${question.id}/${currentUserMemberId}`);
                             
-                            // authenticatedFetch 사용
-                            const response = await authenticatedFetch(`${API_BASE_URL}/api/questions/${question.id}`, {
+                            // authenticatedFetch 사용 - memberId 포함
+                            const response = await authenticatedFetch(`${API_BASE_URL}/api/questions/${question.id}/${currentUserMemberId}`, {
                                 method: 'DELETE',
                             });
 
                             if (!response.ok) {
+                                const errorText = await response.text();
+                                console.error('질문 삭제 에러:', errorText);
                                 throw new Error(`질문 삭제 실패! status: ${response.status}`);
                             }
 
@@ -417,12 +419,16 @@ const QuestionDetail = ({ navigation, route }) => {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            // authenticatedFetch 사용
-                            const response = await authenticatedFetch(`${API_BASE_URL}/api/answers/${answerId}`, {
+                            console.log('답변 삭제 요청:', `${API_BASE_URL}/api/answers/${answerId}/${currentUserMemberId}`);
+                            
+                            // authenticatedFetch 사용 - memberId 포함
+                            const response = await authenticatedFetch(`${API_BASE_URL}/api/answers/${answerId}/${currentUserMemberId}`, {
                                 method: 'DELETE',
                             });
 
                             if (!response.ok) {
+                                const errorText = await response.text();
+                                console.error('답변 삭제 에러:', errorText);
                                 throw new Error(`답변 삭제 실패! status: ${response.status}`);
                             }
 
