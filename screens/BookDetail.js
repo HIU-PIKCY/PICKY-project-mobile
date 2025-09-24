@@ -360,7 +360,7 @@ const BookDetail = ({ navigation, route }) => {
 
     // 서재 등록/삭제 처리
     const handleAddOrDeleteBook = async () => {
-        if (!book?.bookId || processing) return;
+        if (processing) return;
 
         setProcessing(true);
         
@@ -398,7 +398,7 @@ const BookDetail = ({ navigation, route }) => {
                             'Content-Type': 'application/json',
                         },
                         body: JSON.stringify({
-                            bookId: book.bookId,
+                            bookId: book.bookId, // null일 수 있음
                             isbn: book.isbn,
                             title: book.title,
                             authors: book.authors,
@@ -528,16 +528,16 @@ const BookDetail = ({ navigation, route }) => {
     const handleGoBack = () => navigation.goBack();
     
     const handleAIQuestion = () => {
-        if (!book?.bookId) {
-            Alert.alert("알림", "AI 질문을 생성하려면 도서가 데이터베이스에 등록되어야 합니다.");
+        if (!book?.isbn) {
+            Alert.alert("알림", "AI 질문을 생성할 수 없습니다. 책 정보를 확인해주세요.");
             return;
         }
         aiSheetRef.current?.open();
     };
 
     const handleQuestionRegister = () => {
-        if (!book?.bookId) {
-            Alert.alert("알림", "질문을 등록하려면 도서가 데이터베이스에 등록되어야 합니다.");
+        if (!book?.isbn) {
+            Alert.alert("알림", "질문을 등록할 수 없습니다. 책 정보를 확인해주세요.");
             return;
         }
         writeSheetRef.current?.open();
@@ -802,9 +802,9 @@ const BookDetail = ({ navigation, route }) => {
 
                             {book.isInLibrary ? (
                                 <TouchableOpacity
-                                    style={[styles.deleteButton, (processing || !book.bookId) && styles.buttonDisabled]}
+                                    style={[styles.deleteButton, processing && styles.buttonDisabled]}
                                     onPress={handleAddOrDeleteBook}
-                                    disabled={processing || !book.bookId}
+                                    disabled={processing}
                                 >
                                     {processing ? (
                                         <ActivityIndicator size="small" color="#F87171" />
@@ -814,9 +814,9 @@ const BookDetail = ({ navigation, route }) => {
                                 </TouchableOpacity>
                             ) : (
                                 <TouchableOpacity
-                                    style={[styles.addButton, (processing || !book.bookId) && styles.buttonDisabled]}
+                                    style={[styles.addButton, processing && styles.buttonDisabled]}
                                     onPress={handleAddOrDeleteBook}
-                                    disabled={processing || !book.bookId}
+                                    disabled={processing}
                                 >
                                     {processing ? (
                                         <ActivityIndicator size="small" color="#10B981" />
@@ -864,17 +864,17 @@ const BookDetail = ({ navigation, route }) => {
 
             <View style={styles.answerInputContainer}>
                 <TouchableOpacity
-                    style={[styles.aiAnswerButton, !book?.bookId && styles.buttonDisabled]}
+                    style={[styles.aiAnswerButton, !book?.isbn && styles.buttonDisabled]}
                     onPress={handleAIQuestion}
-                    disabled={!book?.bookId}
+                    disabled={!book?.isbn}
                 >
                     <MintStar />
                     <Text style={styles.aiAnswerButtonText}>AI 질문 생성</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                    style={[styles.submitButton, !book?.bookId && styles.buttonDisabled]}
+                    style={[styles.submitButton, !book?.isbn && styles.buttonDisabled]}
                     onPress={handleQuestionRegister}
-                    disabled={!book?.bookId}
+                    disabled={!book?.isbn}
                 >
                     <Text style={styles.submitButtonText}>질문 등록</Text>
                 </TouchableOpacity>
