@@ -15,7 +15,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import CustomHeader from '../components/CustomHeader';
 import { useAuth } from '../AuthContext';
 
@@ -24,18 +23,12 @@ const MyMenu = ({ navigation }) => {
     const [refreshing, setRefreshing] = useState(false);
     const [userData, setUserData] = useState(null);
     const [loggingOut, setLoggingOut] = useState(false);
+    const [error, setError] = useState(null);
 
-    // 더미 데이터 - 실제 구현 시 API 호출로 대체
-    const dummyUserData = {
-        nickname: '키피럽',
-        email: 'keepitup@example.com',
-        profileImage: 'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=150&h=150&fit=crop&crop=center',
-        stats: {
-            totalBooks: 12,
-            questions: 8,
-            answers: 16
-        }
-    };
+    const { authenticatedFetch, logout } = useAuth();
+    
+    // 서버 API URL
+    const API_BASE_URL = 'http://13.124.86.254';
 
     const menuItems = [
         {
@@ -64,22 +57,70 @@ const MyMenu = ({ navigation }) => {
     );
 
     const loadUserProfile = async () => {
+        setLoading(true);
+        setError(null);
+        
         try {
-            // 실제 구현 시 AsyncStorage에서 사용자 정보 가져오기
-            // const userString = await AsyncStorage.getItem('user');
-            // if (userString) {
-            //     const user = JSON.parse(userString);
-            //     const response = await apiService.getUserProfile(user.id);
-            //     setUserData(response.data);
-            // }
+            console.log('프로필 API 호출 시작:', `${API_BASE_URL}/api/members/mymenu`);
+            
+            const response = await authenticatedFetch(`${API_BASE_URL}/api/members/mymenu`, {
+                method: 'GET',
+            });
 
-            // 더미 데이터 시뮬레이션
-            setTimeout(() => {
-                setUserData(dummyUserData);
-                setLoading(false);
-            }, 300);
+            console.log('프로필 API 응답 상태:', response.status);
+
+            if (!response.ok) {
+                // 에러 응답 내용 확인
+                const errorText = await response.text();
+                console.log('프로필 API 에러 응답:', errorText);
+                
+                if (response.status === 401) {
+                    throw new Error('인증이 필요합니다');
+                }
+                throw new Error(`프로필 조회 실패: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+            console.log('프로필 API 성공 응답:', data);
+
+            if (data.isSuccess && data.result) {
+                const { user, stats } = data.result;
+                
+                // 받아온 데이터를 UI에 맞는 형태로 변환
+                const formattedUserData = {
+                    id: user.id,
+                    nickname: user.nickname || user.name || '사용자',
+                    email: user.email,
+                    profileImage: user.profileImg,
+                    stats: {
+                        totalBooks: stats.totalBooks || 0,
+                        questions: stats.questions || 0,
+                        answers: stats.answers || 0
+                    }
+                };
+
+                console.log('변환된 사용자 데이터:', formattedUserData);
+                setUserData(formattedUserData);
+            } else {
+                throw new Error(data.message || '프로필 정보를 불러올 수 없습니다.');
+            }
+
         } catch (error) {
             console.error('사용자 프로필 로딩 실패:', error);
+            setError(error.message);
+            
+            // 인증 에러 처리
+            if (error.message.includes('인증') || error.message.includes('401')) {
+                Alert.alert('인증 오류', '로그인이 필요합니다. 다시 로그인해주세요.', [
+                    {
+                        text: '확인',
+                        onPress: () => navigation.navigate('Login')
+                    }
+                ]);
+            } else {
+                Alert.alert('오류', '프로필을 불러오는 중 오류가 발생했습니다.');
+            }
+        } finally {
             setLoading(false);
         }
     };
@@ -115,8 +156,6 @@ const MyMenu = ({ navigation }) => {
         );
     };
 
-    const { logout } = useAuth();
-
     const confirmLogout = async () => {
         setLoggingOut(true);
         try {
@@ -141,7 +180,6 @@ const MyMenu = ({ navigation }) => {
         }
     };
 
-
     const renderMenuItem = (item) => (
         <TouchableOpacity
             key={item.id}
@@ -164,6 +202,7 @@ const MyMenu = ({ navigation }) => {
                     source={{ uri: userData.profileImage }}
                     style={styles.profileImage}
                     onError={() => {
+                        console.log('프로필 이미지 로딩 실패:', userData.profileImage);
                         // 이미지 로딩 실패 시 기본 아바타로 대체
                         setUserData(prev => ({
                             ...prev,
@@ -179,6 +218,20 @@ const MyMenu = ({ navigation }) => {
         }
     };
 
+    const renderError = () => (
+        <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle-outline" size={48} color="#FF6B6B" />
+            <Text style={styles.errorTitle}>프로필을 불러올 수 없습니다</Text>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity 
+                style={styles.retryButton} 
+                onPress={loadUserProfile}
+            >
+                <Text style={styles.retryButtonText}>다시 시도</Text>
+            </TouchableOpacity>
+        </View>
+    );
+
     if (loading && !userData) {
         return (
             <SafeAreaView style={styles.container}>
@@ -189,7 +242,21 @@ const MyMenu = ({ navigation }) => {
                 />
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color="#90D1BE" />
+                    <Text style={styles.loadingText}>프로필을 불러오는 중...</Text>
                 </View>
+            </SafeAreaView>
+        );
+    }
+
+    if (error && !userData) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <StatusBar barStyle="dark-content" />
+                <CustomHeader
+                    title="마이"
+                    onBackPress={handleGoBack}
+                />
+                {renderError()}
             </SafeAreaView>
         );
     }
@@ -203,6 +270,13 @@ const MyMenu = ({ navigation }) => {
                 title="마이"
                 onBackPress={handleGoBack}
             />
+
+            {/* 에러 배너 */}
+            {error && userData && (
+                <View style={styles.errorBanner}>
+                    <Text style={styles.errorBannerText}>최신 정보를 불러오지 못했습니다. 새로고침해보세요.</Text>
+                </View>
+            )}
 
             <ScrollView
                 style={styles.content}
@@ -290,6 +364,55 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    loadingText: {
+        fontSize: 14,
+        color: '#666',
+        marginTop: 12,
+    },
+    errorContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 40,
+    },
+    errorTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#333',
+        marginTop: 16,
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    errorText: {
+        fontSize: 14,
+        color: '#666',
+        textAlign: 'center',
+        lineHeight: 20,
+        marginBottom: 24,
+    },
+    retryButton: {
+        backgroundColor: '#90D1BE',
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        borderRadius: 8,
+    },
+    retryButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    errorBanner: {
+        backgroundColor: '#FFF3CD',
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#FFEAA7',
+    },
+    errorBannerText: {
+        fontSize: 12,
+        color: '#856404',
+        textAlign: 'center',
     },
     profileSection: {
         padding: 24,
