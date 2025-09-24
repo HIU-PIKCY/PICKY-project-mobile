@@ -8,172 +8,143 @@ import {
     StatusBar,
     ActivityIndicator,
     RefreshControl,
+    Alert,
+    Image,
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
-import BookCard from "../components/BookCard";
 import { styles } from "../styles/MainScreenStyle";
 import CustomHeader from '../components/CustomHeader';
+import { useAuth } from "../AuthContext";
 
 const MyLibrary = () => {
     const navigation = useNavigation();
+    const { authenticatedFetch } = useAuth();
+    
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [selectedFilter, setSelectedFilter] = useState("전체");
     const [books, setBooks] = useState([]);
     const [statusCounts, setStatusCounts] = useState({
         "읽는 중": 0,
-        "완독": 0,
-        "읽기 예정": 0
+        "완독": 0
     });
+    const [error, setError] = useState(null);
 
-    // 더미 데이터 - 실제 구현 시 API 호출로 대체
-    const dummyLibraryData = {
-        books: [
-            {
-                id: 1,
-                title: "운수 좋은 날",
-                author: "현진건",
-                status: "읽는 중",
-                publisher: "소담출판사",
-                pages: 231,
-                coverImage: "https://contents.kyobobook.co.kr/sih/fit-in/400x0/pdt/9788973811755.jpg",
-                addedAt: "2024-01-15T10:30:00Z"
-            },
-            {
-                id: 2,
-                title: "노스텔지어, 어느 위험한 감정의 연대기",
-                author: "애그니스 아널드포스터",
-                status: "읽는 중",
-                publisher: "어크로스",
-                pages: 320,
-                coverImage: "https://contents.kyobobook.co.kr/sih/fit-in/400x0/pdt/9791167741684.jpg",
-                addedAt: "2024-01-14T15:20:00Z"
-            },
-            {
-                id: 3,
-                title: "1984",
-                author: "조지 오웰",
-                status: "완독",
-                publisher: "민음사",
-                pages: 400,
-                coverImage: "https://image.aladin.co.kr/product/41/89/letslook/S062933637_f.jpg",
-                addedAt: "2024-01-10T09:15:00Z"
-            },
-            {
-                id: 4,
-                title: "해리포터와 마법사의 돌",
-                author: "J.K. 롤링",
-                status: "읽는 중",
-                publisher: "문학수첩",
-                pages: 348,
-                coverImage: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcToSmMU_mIWeKIo8u84VpMgF7kPMR9SjVN2ug&s",
-                addedAt: "2024-01-08T14:25:00Z"
-            },
-            {
-                id: 5,
-                title: "어린왕자",
-                author: "생텍쥐페리",
-                status: "완독",
-                publisher: "열린책들",
-                pages: 128,
-                coverImage: "https://contents.kyobobook.co.kr/sih/fit-in/400x0/pdt/9791191200157.jpg",
-                addedAt: "2024-01-05T11:40:00Z"
-            },
-            {
-                id: 6,
-                title: "데미안",
-                author: "헤르만 헤세",
-                status: "읽는 중",
-                publisher: "민음사",
-                pages: 288,
-                coverImage: "https://minumsa.minumsa.com/wp-content/uploads/bookcover/044_%EB%8D%B0%EB%AF%B8%EC%95%88-300x504.jpg",
-                addedAt: "2024-01-03T16:55:00Z"
-            },
-            {
-                id: 7,
-                title: "미움받을 용기",
-                author: "기시미 이치로",
-                status: "완독",
-                publisher: "인플루엔셜",
-                pages: 350,
-                coverImage: "https://image.aladin.co.kr/product/4846/30/letslook/S572535350_fl.jpg",
-                addedAt: "2023-12-28T13:20:00Z"
-            },
-            {
-                id: 8,
-                title: "코스모스",
-                author: "칼 세이건",
-                status: "읽는 중",
-                publisher: "사이언스북스",
-                pages: 456,
-                coverImage: "https://contents.kyobobook.co.kr/sih/fit-in/200x0/pdt/9788983711892.jpg",
-                addedAt: "2023-12-25T08:30:00Z"
-            },
-            {
-                id: 9,
-                title: "사피엔스",
-                author: "유발 하라리",
-                status: "완독",
-                publisher: "김영사",
-                pages: 512,
-                coverImage: "https://contents.kyobobook.co.kr/sih/fit-in/200x0/pdt/9788934992042.jpg",
-                addedAt: "2023-12-20T17:10:00Z"
-            },
-            {
-                id: 10,
-                title: "백년동안의 고독",
-                author: "가브리엘 가르시아 마르케스",
-                status: "읽는 중",
-                publisher: "민음사",
-                pages: 416,
-                coverImage: "https://contents.kyobobook.co.kr/sih/fit-in/400x0/pdt/9788970126937.jpg",
-                addedAt: "2023-12-15T12:45:00Z"
-            },
-            {
-                id: 11,
-                title: "죄와 벌",
-                author: "표도르 도스토옙스키",
-                status: "읽는 중",
-                publisher: "열린책들",
-                pages: 672,
-                coverImage: "https://image.yes24.com/goods/96668213/XL",
-                addedAt: "2023-12-10T14:30:00Z"
-            },
-        ],
-        statusCounts: {
-            "읽는 중": 6,
-            "완독": 4,
-            "읽기 예정": 1
-        }
-    };
+    // 서버 API URL
+    const API_BASE_URL = 'http://13.124.86.254';
 
     useEffect(() => {
         loadLibraryData();
     }, []);
 
-    // 화면 포커스 시 데이터 새로고침 (다른 화면에서 책 추가/삭제 시 반영)
+    // 화면 포커스 시 데이터 새로고침
     useFocusEffect(
         React.useCallback(() => {
             loadLibraryData();
         }, [])
     );
 
+    // 서재 데이터 로드
     const loadLibraryData = async () => {
         setLoading(true);
+        setError(null);
+        
         try {
-            // 실제 구현 시 API 호출
-            // const response = await apiService.getUserLibrary(userId, selectedFilter);
-            // setBooks(response.data.books);
-            // setStatusCounts(response.data.statusCounts);
-            
-            // 더미 데이터 시뮬레이션
-            setTimeout(() => {
-                setBooks(dummyLibraryData.books);
-                setStatusCounts(dummyLibraryData.statusCounts);
-                setLoading(false);
-            }, 500);
+            const response = await authenticatedFetch(`${API_BASE_URL}/api/book-shelf`, {
+                method: 'GET',
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('인증이 필요합니다');
+                }
+                throw new Error(`서재 조회 실패: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.isSuccess && data.result && data.result.items) {
+                const shelfItems = data.result.items;
+                
+                // 읽기 상태를 한국어로 변환하는 함수
+                const convertReadingStatus = (status) => {
+                    switch (status) {
+                        case 'READING':
+                            return '읽는 중';
+                        case 'COMPLETED':
+                            return '완독';
+                        default:
+                            return '읽는 중';
+                    }
+                };
+
+                // 서재 데이터 변환
+                const formattedBooks = shelfItems.map(item => {
+                    const koreanStatus = convertReadingStatus(item.readingStatus);
+                    
+                    // authors가 문자열인 경우 배열로 변환
+                    const authorsArray = typeof item.book.authors === 'string' 
+                        ? [item.book.authors] 
+                        : (item.book.authors || ["작가 미상"]);
+                    
+                    return {
+                        id: item.id,
+                        bookId: item.book.id || null,
+                        isbn: item.book.isbn,
+                        title: item.book.title,
+                        author: authorsArray[0] || "작가 미상",
+                        authors: authorsArray,
+                        status: koreanStatus,
+                        publisher: item.book.publisher || "출판사 미상",
+                        pages: item.book.pageCount || 0,
+                        pageCount: item.book.pageCount || 0,
+                        publishedAt: item.book.publishedAt,
+                        coverImage: item.book.coverImage,
+                        addedAt: item.createdAt || new Date().toISOString(),
+                        readingStatus: koreanStatus
+                    };
+                });
+
+                // 상태별 개수 계산
+                const counts = {
+                    "읽는 중": 0,
+                    "완독": 0
+                };
+
+                formattedBooks.forEach(book => {
+                    const status = book.status || "읽는 중";
+                    if (counts.hasOwnProperty(status)) {
+                        counts[status]++;
+                    }
+                });
+
+                setBooks(formattedBooks);
+                setStatusCounts(counts);
+            } else {
+                // 빈 서재인 경우
+                setBooks([]);
+                setStatusCounts({
+                    "읽는 중": 0,
+                    "완독": 0
+                });
+            }
+
         } catch (error) {
             console.error('서재 데이터 로딩 실패:', error);
+            setError(error.message);
+            
+            // 인증 에러 처리
+            if (error.message.includes('인증') || error.message.includes('401')) {
+                Alert.alert('인증 오류', '로그인이 필요합니다. 다시 로그인해주세요.', [
+                    {
+                        text: '확인',
+                        onPress: () => navigation.navigate('Login')
+                    }
+                ]);
+            } else {
+                Alert.alert('오류', '서재를 불러오는 중 오류가 발생했습니다.');
+            }
+        } finally {
             setLoading(false);
         }
     };
@@ -190,7 +161,7 @@ const MyLibrary = () => {
         return book.status === selectedFilter;
     });
 
-    // 필터 버튼 텍스트에 개수 포함 - ex: 전체 11
+    // 필터 버튼 텍스트에 개수 포함
     const getFilterText = (filter) => {
         if (filter === "전체") {
             const totalCount = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
@@ -201,14 +172,78 @@ const MyLibrary = () => {
 
     const handleBookPress = (book) => {
         navigation.navigate("BookDetail", {
-            bookId: book.id,
-            bookData: book,
+            isbn: book.isbn,
+            bookData: {
+                isbn: book.isbn,
+                title: book.title,
+                authors: book.authors,
+                publisher: book.publisher,
+                pageCount: book.pageCount,
+                publishedAt: book.publishedAt,
+                coverImage: book.coverImage,
+            }
         });
     };
 
     const handleGoBack = () => {
         navigation.goBack();
     };
+
+    // 책 카드 렌더링 (인라인 스타일 적용)
+    const renderBook = (book, index) => (
+        <TouchableOpacity
+            key={book.id}
+            style={[
+                bookCardStyles.bookCard,
+                (index + 1) % 3 === 0 && { marginRight: 0 }
+            ]}
+            onPress={() => handleBookPress(book)}
+            activeOpacity={0.7}
+        >
+            <View style={bookCardStyles.coverWrapper}>
+                {book.coverImage ? (
+                    <Image
+                        source={{ uri: book.coverImage }}
+                        style={bookCardStyles.bookCover}
+                        resizeMode="cover"
+                        onError={() => {
+                            console.log('이미지 로딩 실패:', book.coverImage);
+                        }}
+                    />
+                ) : (
+                    <View style={bookCardStyles.bookCoverPlaceholder} />
+                )}
+            </View>
+
+            <Text 
+                style={bookCardStyles.bookTitle}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+            >
+                {book.title}
+            </Text>
+            <Text 
+                style={bookCardStyles.bookAuthor}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+            >
+                {book.author}
+            </Text>
+            <View 
+                style={[
+                    bookCardStyles.statusBadge, 
+                    book.status === '완독' ? bookCardStyles.completedBadge : bookCardStyles.readingBadge
+                ]}
+            >
+                <Text style={[
+                    bookCardStyles.statusText,
+                    book.status === '완독' ? bookCardStyles.completedText : bookCardStyles.readingText
+                ]}>
+                    {book.status}
+                </Text>
+            </View>
+        </TouchableOpacity>
+    );
 
     const renderEmptyState = () => (
         <View style={styles.emptyContainer}>
@@ -245,6 +280,13 @@ const MyLibrary = () => {
                 title="내 서재"
                 onBackPress={handleGoBack}
             />
+
+            {/* 에러 배너 */}
+            {error && (
+                <View style={styles.errorBanner}>
+                    <Text style={styles.errorBannerText}>서재를 불러오지 못했습니다. 새로고침해보세요.</Text>
+                </View>
+            )}
 
             {/* 내 서재 */}
             <View style={{ paddingHorizontal: 16 }}>
@@ -286,14 +328,7 @@ const MyLibrary = () => {
                 {/* 책 그리드 */}
                 {filteredBooks.length > 0 ? (
                     <View style={styles.booksGrid}>
-                        {filteredBooks.map((book, index) => (
-                            <BookCard
-                                key={book.id}
-                                book={book}
-                                index={index}
-                                onPress={handleBookPress}
-                            />
-                        ))}
+                        {filteredBooks.map((book, index) => renderBook(book, index))}
                     </View>
                 ) : (
                     renderEmptyState()
@@ -303,31 +338,77 @@ const MyLibrary = () => {
     );
 };
 
-// 추가 스타일 (기존 스타일에 병합)
-const additionalStyles = {
-    loadingContainer: {
-        flex: 1,
+// BookCard 스타일을 컴포넌트 내에 정의
+const bookCardStyles = {
+    bookCard: {
+        width: '28%',
+        marginRight: '8%',
+        marginBottom: 20,
+        alignItems: 'flex-start',
+        height: 195,
+    },
+    coverWrapper: {
+        width: '100%',
+        height: 135,
+        marginBottom: 8,
+        borderRadius: 4,
+        overflow: 'hidden',
+        backgroundColor: '#E8E8E8',
         justifyContent: 'center',
         alignItems: 'center',
     },
-    emptyContainer: {
-        flex: 1,
+    bookCover: {
+        width: '100%',
+        height: '100%',
+    },
+    bookCoverPlaceholder: {
+        width: '100%',
+        height: '100%',
+        backgroundColor: '#D3D3D3',
+    },
+    bookTitle: {
+        fontFamily: 'SUIT-Medium',
+        fontSize: 12,
+        fontWeight: '500',
+        color: '#666666',
+        marginBottom: 2,
+        width: '100%',
+    },
+    bookAuthor: {
+        fontFamily: 'SUIT-Medium',
+        fontSize: 10,
+        color: '#888888',
+        marginBottom: 6,
+        width: '100%',
+    },
+    statusBadge: {
+        width: '100%',
+        paddingHorizontal: 30.5,
+        paddingVertical: 3,
+        borderRadius: 4,
+        alignSelf: 'center',
+        position: 'absolute',
+        bottom: 0,
+        minHeight: 18,
         justifyContent: 'center',
-        alignItems: 'center',
-        paddingTop: 100,
     },
-    emptyText: {
-        fontSize: 16,
-        fontFamily: "SUIT-Medium",
-        color: "#999999",
+    readingBadge: {
+        borderWidth: 0.5,
+        borderColor: '#0D2525',
+    },
+    completedBadge: {
+        backgroundColor: '#0D2525',
+    },
+    statusText: {
+        fontFamily: 'SUIT-SemiBold',
+        fontSize: 10,
         textAlign: 'center',
     },
-    emptySubText: {
-        fontSize: 14,
-        fontFamily: "SUIT-Regular",
-        color: "#CCCCCC",
-        marginTop: 8,
-        textAlign: 'center',
+    readingText: {
+        color: '#0D2525',
+    },
+    completedText: {
+        color: '#FFFFFF',
     },
 };
 
