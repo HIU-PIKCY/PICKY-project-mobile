@@ -25,13 +25,10 @@ const BookDetail = ({ navigation, route }) => {
     const writeSheetRef = useRef(null);
     const screenHeight = Dimensions.get("window").height;
 
-    // AuthContext에서 authenticatedFetch와 사용자 정보 가져오기
     const { authenticatedFetch, user } = useAuth();
 
-    // 서버 API URL
     const API_BASE_URL = 'http://13.124.86.254';
 
-    // route params에서 ISBN과 기본 책 데이터 가져오기
     const { isbn, bookData } = route.params || {};
     
     const [book, setBook] = useState(null);
@@ -46,9 +43,7 @@ const BookDetail = ({ navigation, route }) => {
     // 화면 포커스 시 질문 목록 새로고침
     useFocusEffect(
         React.useCallback(() => {
-            // QuestionDetail에서 돌아올 때마다 질문 목록 새로고침
             if (book?.bookId) {
-                console.log('화면 포커스 - 질문 목록 새로고침');
                 loadQuestions();
             }
         }, [book?.bookId])
@@ -64,9 +59,7 @@ const BookDetail = ({ navigation, route }) => {
         }
     }, [book?.bookId, selectedSort]);
 
-    // ===============================================
-    // 💡 인증된 API 호출 함수: 도서 데이터 로드
-    // ===============================================
+    // 도서 데이터 로드
     const loadBookData = async () => {
         if (!isbn) {
             setError("ISBN 정보가 없습니다.");
@@ -78,55 +71,100 @@ const BookDetail = ({ navigation, route }) => {
             setLoading(true);
             setError(null);
 
-            // 1. ISBN으로 데이터베이스 내부 책 ID 조회 (인증된 요청)
-            const isbnResponse = await authenticatedFetch(`${API_BASE_URL}/api/books/isbn/${isbn}`, {
-                method: 'GET',
-            });
+            let bookId = null;
+            let basicBookInfo = null;
 
-            if (!isbnResponse.ok) {
-                throw new Error(`ISBN 조회 실패! status: ${isbnResponse.status}`);
-            }
+            // 1. ISBN으로 데이터베이스 내부 책 ID 조회 시도
+            try {
+                const isbnResponse = await authenticatedFetch(`${API_BASE_URL}/api/books/isbn/${isbn}`, {
+                    method: 'GET',
+                });
 
-            const isbnData = await isbnResponse.json();
-            if (!isbnData.isSuccess || !isbnData.result) {
-                throw new Error(isbnData.message || 'ISBN으로 책을 찾을 수 없습니다.');
-            }
-            const bookId = isbnData.result.id;
-
-            // 2. 책 상세 정보 조회 (인증된 요청)
-            const detailResponse = await authenticatedFetch(`${API_BASE_URL}/api/books/${isbn}`, {
-                method: 'GET',
-            });
-
-            let bookDetail = {};
-            if (detailResponse.ok) {
-                const detailData = await detailResponse.json();
-                if (detailData.isSuccess && detailData.result) {
-                    bookDetail = detailData.result;
+                if (isbnResponse.ok) {
+                    const isbnData = await isbnResponse.json();
+                    
+                    if (isbnData.isSuccess && isbnData.result) {
+                        bookId = isbnData.result.id;
+                        basicBookInfo = isbnData.result;
+                    }
                 }
-            } else {
-                console.log("상세 정보 조회는 실패했지만, ISBN으로 기본 정보는 사용합니다.");
+            } catch (isbnError) {
+                console.error('ISBN 조회 중 오류:', isbnError);
             }
 
-            // 책 상태 설정
-            setBook({
-                isbn: bookDetail.isbn || isbn,
+            // 2. 책 상세 정보 조회 시도
+            let bookDetail = {};
+            try {
+                const detailResponse = await authenticatedFetch(`${API_BASE_URL}/api/books/${isbn}`, {
+                    method: 'GET',
+                });
+
+                if (detailResponse.ok) {
+                    const detailData = await detailResponse.json();
+                    
+                    if (detailData.isSuccess && detailData.result) {
+                        bookDetail = detailData.result;
+                    }
+                }
+            } catch (detailError) {
+                console.error('상세 정보 조회 중 오류:', detailError);
+            }
+
+            // 3. 내 서재 목록 조회해서 서재 ID 찾기
+            let myLibraryId = null;
+            let isInLibrary = false;
+            let readingStatus = null;
+            
+            try {
+                const libraryResponse = await authenticatedFetch(`${API_BASE_URL}/api/book-shelf`, {
+                    method: 'GET',
+                });
+
+                if (libraryResponse.ok) {
+                    const libraryData = await libraryResponse.json();
+                    
+                    if (libraryData.isSuccess && libraryData.result && libraryData.result.items) {
+                        const shelfItems = libraryData.result.items;
+                        
+                        const myShelfItem = shelfItems.find(item => {
+                            const book = item.book;
+                            return book.isbn === isbn;
+                        });
+                        
+                        if (myShelfItem) {
+                            isInLibrary = true;
+                            readingStatus = myShelfItem.readingStatus;
+                            myLibraryId = myShelfItem.id;
+                        }
+                    }
+                }
+            } catch (libraryError) {
+                console.error('내 서재 목록 조회 중 오류:', libraryError);
+            }
+
+            // 4. 최종 책 데이터 구성
+            const finalBook = {
+                isbn: bookDetail.isbn || basicBookInfo?.isbn || isbn,
                 bookId: bookId,
-                title: bookDetail.title || isbnData.result.title || "제목 없음",
-                authors: bookDetail.authors || [isbnData.result.author] || ["작가 미상"],
-                publisher: bookDetail.publisher || "출판사 미상",
-                pageCount: bookDetail.pageCount || 0,
-                publishedAt: bookDetail.publishedAt || "",
-                coverImage: bookDetail.coverImage || isbnData.result.coverImage || null,
-                isInLibrary: bookDetail.isInLibrary || false,
-                readingStatus: bookDetail.readingStatus || null,
-            });
+                libraryId: myLibraryId,
+                id: bookId,
+                title: bookDetail.title || basicBookInfo?.title || bookData?.title || "제목 없음",
+                authors: bookDetail.authors || (basicBookInfo?.author ? [basicBookInfo.author] : bookData?.authors) || ["작가 미상"],
+                publisher: bookDetail.publisher || bookData?.publisher || "출판사 미상",
+                pageCount: bookDetail.pageCount || bookData?.pageCount || 0,
+                publishedAt: bookDetail.publishedAt || bookData?.publishedAt || "",
+                coverImage: bookDetail.coverImage || basicBookInfo?.coverImage || bookData?.coverImage || null,
+                isInLibrary: isInLibrary,
+                readingStatus: readingStatus,
+            };
+            
+            setBook(finalBook);
 
         } catch (error) {
             console.error('책 정보 가져오기 실패:', error);
             setError(error.message);
 
-            // 인증 에러 처리 (authenticatedFetch에서 401 재시도 실패 시 최종적으로 던지는 에러)
+            // 인증 에러 처리
             if (error.message.includes('액세스 토큰이 없습니다') || error.message.includes('토큰 갱신 실패')) {
                 Alert.alert('인증 오류', '로그인이 필요합니다. 다시 로그인해주세요.');
                 navigation.navigate('Login');
@@ -138,6 +176,7 @@ const BookDetail = ({ navigation, route }) => {
                 setBook({
                     isbn: bookData.isbn || isbn,
                     bookId: null,
+                    libraryId: null,
                     title: bookData.title || "제목 없음",
                     authors: bookData.authors || ["작가 미상"],
                     publisher: bookData.publisher || "출판사 미상",
@@ -156,9 +195,7 @@ const BookDetail = ({ navigation, route }) => {
         }
     };
 
-    // ===============================================
-    // 💡 인증된 API 호출 함수: 질문 목록 로드
-    // ===============================================
+    // 질문 목록 로드
     const loadQuestions = async () => {
         if (!book || !book.bookId) {
             setQuestions([]);
@@ -169,7 +206,6 @@ const BookDetail = ({ navigation, route }) => {
             setQuestionsLoading(true);
             const url = `${API_BASE_URL}/api/books/${book.bookId}/questions?sort=${selectedSort === 'recommended' ? 'likes' : 'latest'}`;
             
-            // authenticatedFetch 사용
             const response = await authenticatedFetch(url, {
                 method: 'GET',
             });
@@ -201,7 +237,7 @@ const BookDetail = ({ navigation, route }) => {
                     createdAt: q.createdAt || new Date().toISOString(),
                 }));
 
-                // API에서 정렬을 지원하더라도, 클라이언트에서 한 번 더 적용
+                // 클라이언트에서 정렬 적용
                 const sortedQuestions = [...formattedQuestions].sort((a, b) => {
                     if (selectedSort === 'latest') {
                         return new Date(b.createdAt) - new Date(a.createdAt);
@@ -223,51 +259,163 @@ const BookDetail = ({ navigation, route }) => {
         }
     };
 
-    // ===============================================
-    // 💡 인증된 API 호출 함수: 서재 관리
-    // ===============================================
+    // 서재 등록/삭제 처리
     const handleAddOrDeleteBook = async () => {
         if (!book?.bookId || processing) return;
 
         setProcessing(true);
-        const action = book.isInLibrary ? '삭제' : '등록';
-        const method = book.isInLibrary ? 'DELETE' : 'POST';
-        const url = `${API_BASE_URL}/api/my-books${book.isInLibrary ? `/${book.bookId}` : ''}`;
-
+        
         try {
-            console.log(`내 서재 ${action} 요청:`, url, method);
-
-            // authenticatedFetch 사용
-            const response = await authenticatedFetch(url, {
-                method: method,
-                // POST 요청일 경우 body에 bookId를 포함하여 전송
-                body: method === 'POST' ? JSON.stringify({ bookId: book.bookId }) : undefined,
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            // DELETE는 body가 없을 수 있으므로 status만 확인
-            if (method === 'DELETE') {
-                Alert.alert(`${action} 완료`, `도서가 내 서재에서 성공적으로 ${action}되었습니다.`);
+            if (book.isInLibrary) {
+                setProcessing(false);
+                await removeBookFromLibrary();
             } else {
-                const data = await response.json();
-                if (data.isSuccess) {
-                    Alert.alert(`${action} 완료`, `도서가 내 서재에 성공적으로 ${action}되었습니다.`);
-                } else {
-                    throw new Error(data.message || `${action}에 실패했습니다.`);
+                await addBookToLibrary();
+                setProcessing(false);
+            }
+        } catch (error) {
+            console.error('서재 처리 실패:', error);
+            setProcessing(false);
+        }
+    };
+
+    // 서재에 책 등록
+    const addBookToLibrary = async () => {
+        try {
+            const endpoints = [
+                `${API_BASE_URL}/api/book-shelf`,
+                `${API_BASE_URL}/api/my-books`,
+                `${API_BASE_URL}/api/books`,
+            ];
+
+            let success = false;
+            let lastError = null;
+
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await authenticatedFetch(endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            bookId: book.bookId,
+                            isbn: book.isbn,
+                            title: book.title,
+                            authors: book.authors,
+                            publisher: book.publisher,
+                            coverImage: book.coverImage,
+                            pageCount: book.pageCount,
+                            publishedAt: book.publishedAt
+                        })
+                    });
+
+                    if (response.ok) {
+                        success = true;
+                        
+                        const contentType = response.headers.get('content-type');
+                        if (contentType && contentType.includes('application/json')) {
+                            const data = await response.json();
+                            if (data && !data.isSuccess) {
+                                throw new Error(data.message || '서재 등록에 실패했습니다.');
+                            }
+                        }
+                        break;
+                    } else {
+                        const errorText = await response.text();
+                        lastError = new Error(`등록 실패: ${response.status} - ${errorText}`);
+                    }
+                } catch (error) {
+                    lastError = error;
+                    continue;
                 }
             }
+
+            if (!success) {
+                throw lastError || new Error('모든 등록 엔드포인트 실패');
+            }
+
+            Alert.alert('등록 완료', '도서가 내 서재에 성공적으로 등록되었습니다.');
             
-            // 성공 후 데이터 다시 로드
-            await loadBookData(); 
+            // 로컬 상태 즉시 업데이트
+            setBook(prevBook => ({
+                ...prevBook,
+                isInLibrary: true
+            }));
+
+            // 서버에서 최신 데이터 다시 로드
+            setTimeout(() => {
+                loadBookData();
+            }, 1000);
 
         } catch (error) {
-            console.error(`내 서재 ${action} 실패:`, error);
-            Alert.alert(`${action} 실패`, `도서 ${action} 중 오류가 발생했습니다.`);
-        } finally {
-            setProcessing(false);
+            console.error('서재 등록 오류:', error);
+            Alert.alert('등록 실패', error.message || '서재 등록 중 오류가 발생했습니다.');
+        }
+    };
+
+    // 서재에서 책 삭제
+    const removeBookFromLibrary = async () => {
+        try {
+            Alert.alert(
+                '서재에서 삭제',
+                '정말로 내 서재에서 이 도서를 삭제하시겠습니까?',
+                [
+                    {
+                        text: '취소',
+                        style: 'cancel'
+                    },
+                    {
+                        text: '삭제',
+                        style: 'destructive',
+                        onPress: async () => {
+                            await performDelete();
+                        }
+                    }
+                ]
+            );
+
+        } catch (error) {
+            console.error('서재 삭제 오류:', error);
+            Alert.alert('삭제 실패', error.message || '서재 삭제 중 오류가 발생했습니다.');
+        }
+    };
+
+    // 실제 삭제 수행
+    const performDelete = async () => {
+        try {
+            if (!book.libraryId) {
+                Alert.alert('오류', '서재 ID가 설정되지 않았습니다. 화면을 새로고침해주세요.');
+                loadBookData();
+                return;
+            }
+            
+            const response = await authenticatedFetch(`${API_BASE_URL}/api/book-shelf/${book.libraryId}`, {
+                method: 'DELETE',
+            });
+
+            if (response.ok) {
+                Alert.alert('삭제 완료', '도서가 내 서재에서 성공적으로 삭제되었습니다.');
+                
+                setBook(prevBook => ({
+                    ...prevBook,
+                    isInLibrary: false,
+                    readingStatus: null,
+                    libraryId: null
+                }));
+
+                setTimeout(() => {
+                    loadBookData();
+                }, 500);
+            } else {
+                const errorText = await response.text();
+                console.error('서재 삭제 실패 응답:', errorText);
+                Alert.alert('삭제 실패', '서재에서 도서를 삭제할 수 없습니다. 다시 시도해주세요.');
+            }
+
+        } catch (error) {
+            console.error('서재 삭제 최종 실패:', error);
+            Alert.alert('삭제 실패', '네트워크 오류가 발생했습니다. 다시 시도해주세요.');
         }
     };
 
@@ -278,6 +426,7 @@ const BookDetail = ({ navigation, route }) => {
     };
 
     const handleGoBack = () => navigation.goBack();
+    
     const handleAIQuestion = () => {
         if (!book?.bookId) {
             Alert.alert("알림", "AI 질문을 생성하려면 도서가 데이터베이스에 등록되어야 합니다.");
@@ -379,9 +528,6 @@ const BookDetail = ({ navigation, route }) => {
                                     source={{ uri: q.authorImage }} 
                                     style={styles.userIconImage}
                                     resizeMode="cover"
-                                    onError={() => {
-                                        console.log('프로필 이미지 로딩 실패:', q.authorImage);
-                                    }}
                                 />
                             ) : (
                                 <View style={styles.userIcon}>
@@ -440,7 +586,7 @@ const BookDetail = ({ navigation, route }) => {
                 author: book.authors[0]
             },
             questionId: question.id,
-            previousScreen: 'BookDetail' // 이전 화면 정보 추가
+            previousScreen: 'BookDetail'
         });
     };
 
@@ -627,13 +773,11 @@ const BookDetail = ({ navigation, route }) => {
                 </TouchableOpacity>
             </View>
 
-            {/* bookId 전달 및 성공 콜백 */}
             <AIQuestionSheet 
                 ref={aiSheetRef} 
                 modalHeight={screenHeight} 
                 bookId={book?.bookId}
                 onSubmit={() => {
-                    // 질문 등록 성공 시 질문 목록 새로고침
                     loadQuestions();
                 }}
             />
@@ -642,7 +786,6 @@ const BookDetail = ({ navigation, route }) => {
                 modalHeight={screenHeight}
                 bookId={book?.bookId}
                 onSubmit={() => {
-                    // 질문 등록 성공 시 질문 목록 새로고침
                     loadQuestions();
                 }}
             />
