@@ -38,6 +38,7 @@ const BookDetail = ({ navigation, route }) => {
     const [questionsLoading, setQuestionsLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [processing, setProcessing] = useState(false);
+    const [statusChanging, setStatusChanging] = useState(false);
     const [error, setError] = useState(null);
 
     // 화면 포커스 시 질문 목록 새로고침
@@ -58,6 +59,30 @@ const BookDetail = ({ navigation, route }) => {
             loadQuestions();
         }
     }, [book?.bookId, selectedSort]);
+
+    // 읽기 상태 한국어 변환 함수
+    const convertReadingStatus = (status) => {
+        switch (status) {
+            case 'READING':
+                return '읽는 중';
+            case 'COMPLETED':
+                return '완독';
+            default:
+                return '읽는 중';
+        }
+    };
+
+    // 한국어 상태를 영어로 변환하는 함수
+    const convertStatusToEnglish = (koreanStatus) => {
+        switch (koreanStatus) {
+            case '읽는 중':
+                return 'READING';
+            case '완독':
+                return 'COMPLETED';
+            default:
+                return 'READING';
+        }
+    };
 
     // 도서 데이터 로드
     const loadBookData = async () => {
@@ -133,7 +158,7 @@ const BookDetail = ({ navigation, route }) => {
                         
                         if (myShelfItem) {
                             isInLibrary = true;
-                            readingStatus = myShelfItem.readingStatus;
+                            readingStatus = convertReadingStatus(myShelfItem.readingStatus);
                             myLibraryId = myShelfItem.id;
                         }
                     }
@@ -192,6 +217,80 @@ const BookDetail = ({ navigation, route }) => {
 
         } finally {
             setLoading(false);
+        }
+    };
+
+    // 읽기 상태 변경 함수
+    const changeReadingStatus = async () => {
+        if (!book?.libraryId || statusChanging) return;
+
+        const currentStatus = book.readingStatus;
+        const newStatus = currentStatus === '읽는 중' ? '완독' : '읽는 중';
+        const englishStatus = convertStatusToEnglish(newStatus);
+
+        Alert.alert(
+            '읽기 상태 변경',
+            `이 도서의 상태를 '${newStatus}'로 변경하시겠습니까?`,
+            [
+                {
+                    text: '취소',
+                    style: 'cancel'
+                },
+                {
+                    text: '변경',
+                    onPress: async () => {
+                        await performStatusChange(englishStatus, newStatus);
+                    }
+                }
+            ]
+        );
+    };
+
+    // 실제 상태 변경 수행
+    const performStatusChange = async (englishStatus, koreanStatus) => {
+        try {
+            setStatusChanging(true);
+
+            const response = await authenticatedFetch(`${API_BASE_URL}/api/book-shelf/${book.libraryId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    status: englishStatus
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                
+                if (data.isSuccess) {
+                    Alert.alert('변경 완료', `읽기 상태가 '${koreanStatus}'로 변경되었습니다.`);
+                    
+                    // 로컬 상태 즉시 업데이트
+                    setBook(prevBook => ({
+                        ...prevBook,
+                        readingStatus: koreanStatus
+                    }));
+
+                    // 서버에서 최신 데이터 다시 로드
+                    setTimeout(() => {
+                        loadBookData();
+                    }, 500);
+                } else {
+                    throw new Error(data.message || '상태 변경에 실패했습니다.');
+                }
+            } else {
+                const errorText = await response.text();
+                console.error('상태 변경 실패 응답:', errorText);
+                throw new Error('상태 변경 요청이 실패했습니다.');
+            }
+
+        } catch (error) {
+            console.error('상태 변경 오류:', error);
+            Alert.alert('변경 실패', error.message || '상태 변경 중 오류가 발생했습니다.');
+        } finally {
+            setStatusChanging(false);
         }
     };
 
@@ -340,7 +439,8 @@ const BookDetail = ({ navigation, route }) => {
             // 로컬 상태 즉시 업데이트
             setBook(prevBook => ({
                 ...prevBook,
-                isInLibrary: true
+                isInLibrary: true,
+                readingStatus: '읽는 중' // 기본 상태 설정
             }));
 
             // 서버에서 최신 데이터 다시 로드
@@ -683,13 +783,20 @@ const BookDetail = ({ navigation, route }) => {
                                 <Text style={styles.metaValue}>{book.pageCount || "-"}</Text>
                             </View>
 
-                            {book.isInLibrary && (
+                            {book.isInLibrary && book.readingStatus && (
                                 <View style={styles.metaRow}>
                                     <Text style={styles.metaLabel}>상태</Text>
-                                    <View style={styles.statusContainer}>
+                                    <TouchableOpacity 
+                                        style={styles.statusContainer}
+                                        onPress={changeReadingStatus}
+                                        disabled={statusChanging}
+                                        activeOpacity={0.7}
+                                    >
                                         <Text style={[styles.readDot, { color: getReadingStatusColor() }]}>•</Text>
-                                        <Text style={styles.metaValue}>{getReadingStatusText()}</Text>
-                                    </View>
+                                        <Text style={styles.metaValue}>
+                                            {statusChanging ? '변경 중...' : getReadingStatusText()}
+                                        </Text>
+                                    </TouchableOpacity>
                                 </View>
                             )}
 

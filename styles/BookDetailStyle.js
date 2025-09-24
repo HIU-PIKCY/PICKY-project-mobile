@@ -90,6 +90,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "flex-start",
         marginBottom: 5,
+        minHeight: 173,
     },
     cover: {
         width: 115,
@@ -111,14 +112,16 @@ const styles = StyleSheet.create({
     },
     bookInfo: {
         flex: 1,
-        justifyContent: "space-between",
-        height: 173,
+        justifyContent: "flex-start",
+        minHeight: 173,
+        paddingVertical: 2, // 상하 여백 추가
     },
     title: {
         fontSize: 18,
         fontFamily: "SUIT-SemiBold",
         color: "#0D2525",
-        marginBottom: 10,
+        marginBottom: 12,
+        lineHeight: 24, // 줄간격 추가
     },
     metaRow: {
         flexDirection: "row",
@@ -131,6 +134,7 @@ const styles = StyleSheet.create({
         fontFamily: "SUIT-Medium",
         color: "#666",
         marginRight: 10,
+        minWidth: 60, // 라벨 최소 너비 설정
     },
     metaValue: {
         fontSize: 14,
@@ -152,17 +156,19 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: "#F87171",
         paddingHorizontal: 20,
-        paddingVertical: 5,
+        paddingVertical: 8,
         borderRadius: 4,
         alignSelf: "flex-start",
+        marginTop: 5, // 메타 정보와 버튼 사이 간격
     },
     addButton: {
         borderWidth: 1,
         borderColor: "#10B981",
         paddingHorizontal: 20,
-        paddingVertical: 5,
+        paddingVertical: 8,
         borderRadius: 4,
         alignSelf: "flex-start",
+        marginTop: 5, // 메타 정보와 버튼 사이 간격
     },
     buttonDisabled: {
         opacity: 0.6,
