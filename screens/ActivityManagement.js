@@ -8,15 +8,18 @@ import {
     SafeAreaView,
     StatusBar,
     ActivityIndicator,
-    RefreshControl
+    RefreshControl,
+    Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import CustomHeader from '../components/CustomHeader';
+import { useAuth } from '../AuthContext';
 
 const ActivityManagement = ({ navigation }) => {
     const [activeTab, setActiveTab] = useState('question'); // 'question', 'answer', 'like'
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const [error, setError] = useState(null);
     
     const [data, setData] = useState({
         questions: [],
@@ -24,78 +27,23 @@ const ActivityManagement = ({ navigation }) => {
         likes: []
     });
 
-    // 더미 데이터 - 실제 구현 시 API 호출로 대체
-    const dummyData = {
-        questions: [
-            {
-                id: 1,
-                title: '작가의 의도는?',
-                author: '현진건',
-                book: '운수 좋은 놈',
-                likes: 5,
-                comments: 3,
-                views: 11,
-                createdAt: '2024-01-15T10:30:00Z'
-            },
-            {
-                id: 2,
-                title: '주인공의 심리 변화 과정은?',
-                author: '현진건',
-                book: '운수 좋은 놈',
-                likes: 8,
-                comments: 5,
-                views: 23,
-                createdAt: '2024-01-14T15:20:00Z'
-            }
-        ],
-        answers: [
-            {
-                id: 1,
-                title: '작가는 이런 의미로 표현한 것 같아요.',
-                questionTitle: '[작가의 의도는?]',
-                questionId: 1,
-                likes: 5,
-                comments: 3,
-                views: 11,
-                createdAt: '2024-01-15T11:30:00Z'
-            },
-            {
-                id: 2,
-                title: '제 생각에는 주인공의 심리상태를 잘 지켜봐야 한다고 생각해요.',
-                questionTitle: '[등장인물 분석 도움]',
-                questionId: 3,
-                likes: 12,
-                comments: 7,
-                views: 45,
-                createdAt: '2024-01-14T16:45:00Z'
-            }
-        ],
-        likes: [
-            {
-                id: 1,
-                title: '캐릭터 디자인할 때 주의점?',
-                author: '질문',
-                time: '3일 전',
-                likes: 15,
-                comments: 8,
-                views: 32,
-                type: 'question',
-                originalId: 5,
-                likedAt: '2024-01-12T14:20:00Z'
-            },
-            {
-                id: 2,
-                title: '스토리 구조를 탄탄하게 만들려면 이렇게 저렇게 해야 좋은 이야기가 될 것 같아요',
-                author: '답변',
-                time: '1주 전',
-                likes: 23,
-                comments: 12,
-                views: 67,
-                type: 'answer',
-                originalId: 8,
-                likedAt: '2024-01-08T09:15:00Z'
-            }
-        ]
+    const { authenticatedFetch } = useAuth();
+    
+    // 서버 API URL
+    const API_BASE_URL = 'http://13.124.86.254';
+
+    // API 엔드포인트 매핑
+    const getEndpoint = (tab) => {
+        switch (tab) {
+            case 'question':
+                return '/api/members/questions';
+            case 'answer':
+                return '/api/members/answers';
+            case 'like':
+                return '/api/members/question-likes';
+            default:
+                return '/api/members/questions';
+        }
     };
 
     useEffect(() => {
@@ -104,17 +52,92 @@ const ActivityManagement = ({ navigation }) => {
 
     const loadData = async () => {
         setLoading(true);
+        setError(null);
+        
         try {
-            // const response = await apiService.getUserActivity(userId, activeTab);
-            // setData(prev => ({ ...prev, [activeTab]: response.data }));
-            
-            // 더미 데이터 시뮬레이션
-            setTimeout(() => {
-                setData(dummyData);
-                setLoading(false);
-            }, 500);
+            const endpoint = getEndpoint(activeTab);
+            const response = await authenticatedFetch(`${API_BASE_URL}${endpoint}`, {
+                method: 'GET',
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('인증이 필요합니다');
+                }
+                throw new Error(`활동 데이터 조회 실패: ${response.status}`);
+            }
+
+            const responseData = await response.json();
+
+            if (responseData.isSuccess && responseData.result) {
+                let formattedData = [];
+
+                // 탭별 데이터 변환
+                if (activeTab === 'question' && responseData.result.questions) {
+                    formattedData = responseData.result.questions.map(item => ({
+                        id: item.id,
+                        title: item.title,
+                        author: item.author,
+                        book: item.book,
+                        likes: item.likes || 0,
+                        comments: item.comments || 0,
+                        views: item.views || 0,
+                        createdAt: item.createdAt || new Date().toISOString()
+                    }));
+                } else if (activeTab === 'answer' && responseData.result.answers) {
+                    formattedData = responseData.result.answers.map(item => ({
+                        id: item.id,
+                        title: item.title,
+                        questionTitle: item.questionTitle,
+                        questionId: item.questionId,
+                        likes: item.likes || 0,
+                        comments: item.comments || 0,
+                        views: item.views || 0,
+                        createdAt: item.createdAt || new Date().toISOString()
+                    }));
+                } else if (activeTab === 'like' && responseData.result.likes) {
+                    formattedData = responseData.result.likes.map(item => ({
+                        id: item.id,
+                        title: item.title,
+                        author: item.author,
+                        time: item.time,
+                        likes: item.likes || 0,
+                        comments: item.comments || 0,
+                        views: item.views || 0,
+                        type: item.type,
+                        originalId: item.originalId,
+                        likedAt: item.likedAt || new Date().toISOString()
+                    }));
+                }
+
+                // 상태 키를 복수형으로 통일
+                const stateKey = activeTab === 'question' ? 'questions' : 
+                               activeTab === 'answer' ? 'answers' : 'likes';
+                
+                setData(prev => ({ ...prev, [stateKey]: formattedData }));
+            } else {
+                // 데이터가 없는 경우 빈 배열로 설정
+                const stateKey = activeTab === 'question' ? 'questions' : 
+                               activeTab === 'answer' ? 'answers' : 'likes';
+                setData(prev => ({ ...prev, [stateKey]: [] }));
+            }
+
         } catch (error) {
-            console.error('데이터 로딩 실패:', error);
+            console.error('활동 데이터 로딩 실패:', error);
+            setError(error.message);
+            
+            // 인증 에러 처리
+            if (error.message.includes('인증') || error.message.includes('401')) {
+                Alert.alert('인증 오류', '로그인이 필요합니다. 다시 로그인해주세요.', [
+                    {
+                        text: '확인',
+                        onPress: () => navigation.navigate('Login')
+                    }
+                ]);
+            } else {
+                Alert.alert('오류', '활동 데이터를 불러오는 중 오류가 발생했습니다.');
+            }
+        } finally {
             setLoading(false);
         }
     };
@@ -181,7 +204,7 @@ const ActivityManagement = ({ navigation }) => {
                     {item.title}
                 </Text>
                 <View style={styles.activityInfoRow}>
-                    <Text style={styles.activityMeta}>
+                    <Text style={styles.activityMeta} numberOfLines={1} ellipsizeMode="tail">
                         {type === 'question' ? `${item.book} | ${item.author}` : 
                          type === 'answer' ? item.questionTitle :
                          `${item.author} | ${item.time}`}
@@ -219,7 +242,6 @@ const ActivityManagement = ({ navigation }) => {
         }
     };
 
-    // 빈 아이템일 시 화면
     const renderEmptyState = () => (
         <View style={styles.emptyContainer}>
             <Ionicons 
@@ -248,18 +270,23 @@ const ActivityManagement = ({ navigation }) => {
                 onBackPress={handleGoBack}
             />
 
+            {error && (
+                <View style={styles.errorBanner}>
+                    <Text style={styles.errorBannerText}>데이터를 불러오지 못했습니다. 새로고침해보세요.</Text>
+                </View>
+            )}
+
             <View style={styles.content}>
-                {/* 탭 헤더 */}
                 <View style={styles.tabHeader}>
                     {renderTabButton('question', '질문')}
                     {renderTabButton('answer', '답변')}
                     {renderTabButton('like', '좋아요')}
                 </View>
 
-                {/* 활동 목록 */}
                 {loading && getCurrentData().length === 0 ? (
                     <View style={styles.loadingContainer}>
                         <ActivityIndicator size="large" color="#90D1BE" />
+                        <Text style={styles.loadingText}>데이터를 불러오는 중...</Text>
                     </View>
                 ) : (
                     <ScrollView 
@@ -295,6 +322,24 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
+    },
+    errorBanner: {
+        backgroundColor: '#FFF3CD',
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#FFEAA7',
+    },
+    errorBannerText: {
+        fontSize: 12,
+        color: '#856404',
+        textAlign: 'center',
+    },
+    loadingText: {
+        fontSize: 14,
+        color: '#666',
+        marginTop: 12,
+        textAlign: 'center',
     },
     tabHeader: {
         flexDirection: 'row',
@@ -393,6 +438,8 @@ const styles = StyleSheet.create({
         fontFamily: 'SUIT-Medium',
         color: '#666666',
         letterSpacing: -0.3,
+        flex: 1,
+        marginRight: 16,
     },
     activityStats: {
         flexDirection: 'row',
