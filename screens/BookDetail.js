@@ -774,18 +774,13 @@ const BookDetail = ({ navigation, route }) => {
                             </View>
 
                             <View style={styles.metaRow}>
-                                <Text style={styles.metaLabel}>출간년도</Text>
-                                <Text style={styles.metaValue}>{formatPublishedDate(book.publishedAt)}</Text>
-                            </View>
-
-                            <View style={styles.metaRow}>
                                 <Text style={styles.metaLabel}>페이지</Text>
                                 <Text style={styles.metaValue}>{book.pageCount || "-"}</Text>
                             </View>
 
-                            {book.isInLibrary && book.readingStatus && (
-                                <View style={styles.metaRow}>
-                                    <Text style={styles.metaLabel}>상태</Text>
+                            <View style={styles.metaRow}>
+                                <Text style={styles.metaLabel}>상태</Text>
+                                {book.isInLibrary && book.readingStatus ? (
                                     <TouchableOpacity 
                                         style={styles.statusContainer}
                                         onPress={changeReadingStatus}
@@ -797,8 +792,10 @@ const BookDetail = ({ navigation, route }) => {
                                             {statusChanging ? '변경 중...' : getReadingStatusText()}
                                         </Text>
                                     </TouchableOpacity>
-                                </View>
-                            )}
+                                ) : (
+                                    <Text style={styles.metaValue}>-</Text>
+                                )}
+                            </View>
 
                             {book.isInLibrary ? (
                                 <TouchableOpacity
