@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     View,
     Text,
@@ -23,14 +23,25 @@ import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 
 import CustomHeader from '../components/CustomHeader';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// API 설정
-const API_BASE_URL = 'http://13.124.86.254'; // 백엔드 서버 주소
+// API 기본 URL
+const API_BASE_URL = 'http://13.124.86.254';
+
+// 상수 정의
+const CONSTANTS = {
+    MAX_FILE_SIZE: 5 * 1024 * 1024, // 5MB
+    MIN_NICKNAME_LENGTH: 2,
+    MAX_NICKNAME_LENGTH: 20,
+    MIN_PASSWORD_LENGTH: 6,
+    IMAGE_QUALITY: 0.7,
+    NICKNAME_CHECK_DELAY: 500, // 닉네임 중복 확인 디바운스 시간
+};
 
 const ProfileManagement = ({ navigation }) => {
+    // 사용자 정보 상태
     const [userData, setUserData] = useState(null);
     const [nickname, setNickname] = useState('');
     const [profileImage, setProfileImage] = useState('');
-    const [originalProfileImage, setOriginalProfileImage] = useState(''); // 원본 이미지 URL 저장
+    const [originalProfileImage, setOriginalProfileImage] = useState('');
     
     // 비밀번호 관련 상태
     const [currentPassword, setCurrentPassword] = useState('');
@@ -38,6 +49,7 @@ const ProfileManagement = ({ navigation }) => {
     const [showCurrentPassword, setShowCurrentPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
     
+    // 로딩 및 상태 표시
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -45,31 +57,47 @@ const ProfileManagement = ({ navigation }) => {
     const [checkingNickname, setCheckingNickname] = useState(false);
     const [changingPassword, setChangingPassword] = useState(false);
     
+    // 닉네임 중복 확인
     const [nicknameAvailable, setNicknameAvailable] = useState(null);
-    const [nicknameCheckTimeout, setNicknameCheckTimeout] = useState(null);
     const [accessToken, setAccessToken] = useState(null);
 
+    // useRef로 타임아웃 관리 (메모리 누수 방지)
+    const nicknameCheckTimeoutRef = useRef(null);
+
+    // 초기 설정: 토큰 로드 및 이미지 권한 요청
     useEffect(() => {
         loadAccessToken();
         requestImagePermissions();
     }, []);
 
+    // 토큰이 로드되면 프로필 정보 가져오기
     useEffect(() => {
         if (accessToken) {
             loadUserProfile();
         }
     }, [accessToken]);
 
-    // 화면 포커스 시 프로필 데이터 새로고침
+    // 화면 포커스 시 프로필 정보 새로고침
     useFocusEffect(
-        React.useCallback(() => {
+        useCallback(() => {
             if (accessToken) {
                 loadUserProfile();
             }
         }, [accessToken])
     );
 
-    // 이미지 권한 요청
+    // 컴포넌트 언마운트 시 타임아웃 정리
+    useEffect(() => {
+        return () => {
+            if (nicknameCheckTimeoutRef.current) {
+                clearTimeout(nicknameCheckTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    /**
+     * 이미지 라이브러리 접근 권한 요청
+     */
     const requestImagePermissions = async () => {
         if (Platform.OS !== 'web') {
             const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -79,7 +107,9 @@ const ProfileManagement = ({ navigation }) => {
         }
     };
 
-    // Access Token 로드
+    /**
+     * AsyncStorage에서 액세스 토큰 로드
+     */
     const loadAccessToken = async () => {
         try {
             const token = await AsyncStorage.getItem('accessToken');
@@ -95,7 +125,9 @@ const ProfileManagement = ({ navigation }) => {
         }
     };
 
-    // 프로필 정보 로드
+    /**
+     * 서버에서 사용자 프로필 정보 가져오기
+     */
     const loadUserProfile = async () => {
         setLoading(true);
         try {
@@ -129,28 +161,36 @@ const ProfileManagement = ({ navigation }) => {
         }
     };
 
+    /**
+     * 당겨서 새로고침
+     */
     const onRefresh = async () => {
         setRefreshing(true);
         await loadUserProfile();
         setRefreshing(false);
     };
 
+    /**
+     * 뒤로가기 버튼 핸들러
+     */
     const handleGoBack = () => {
         navigation.goBack();
     };
 
-    // S3에 이미지 업로드
+    /**
+     * S3에 이미지 업로드
+     * @param {string} imageUri - 업로드할 이미지의 로컬 URI
+     * @returns {Promise<string>} 업로드된 이미지의 URL
+     */
     const uploadImageToS3 = async (imageUri) => {
         try {
-            // 이미지 정보 가져오기
             const fileInfo = await fetch(imageUri);
             const blob = await fileInfo.blob();
             
             console.log('파일 크기:', blob.size, 'bytes (', (blob.size / 1024 / 1024).toFixed(2), 'MB)');
             
-            // 5MB 제한 체크
-            const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-            if (blob.size > MAX_FILE_SIZE) {
+            // 파일 크기 검증
+            if (blob.size > CONSTANTS.MAX_FILE_SIZE) {
                 throw new Error('이미지 크기는 5MB 이하여야 합니다.');
             }
 
@@ -161,14 +201,11 @@ const ProfileManagement = ({ navigation }) => {
             const fileExtension = match ? match[1].toLowerCase() : 'jpg';
             const mimeType = fileExtension === 'png' ? 'image/png' : 'image/jpeg';
 
-            // 파일 객체 생성
-            const file = {
+            formData.append('file', {
                 uri: imageUri,
                 name: filename,
                 type: mimeType,
-            };
-
-            formData.append('file', file);
+            });
 
             console.log('업로드 시작:', { 
                 uri: imageUri, 
@@ -177,11 +214,11 @@ const ProfileManagement = ({ navigation }) => {
                 size: blob.size 
             });
 
+            // S3 업로드 API 호출
             const response = await fetch(`${API_BASE_URL}/test/s3/upload/PROFILE`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,
-                    // Content-Type을 명시하지 않으면 자동으로 multipart/form-data로 설정됨
                 },
                 body: formData,
             });
@@ -192,7 +229,7 @@ const ProfileManagement = ({ navigation }) => {
                 const errorText = await response.text();
                 console.error('서버 응답 에러:', errorText);
                 
-                // 상태 코드별 에러 메시지
+                // 상태 코드별 에러 처리
                 if (response.status === 400) {
                     throw new Error('잘못된 요청입니다. 이미지 형식을 확인해주세요.');
                 } else if (response.status === 413) {
@@ -204,17 +241,19 @@ const ProfileManagement = ({ navigation }) => {
                 }
             }
 
-            // 응답은 이미지 URL 문자열
             const imageUrl = await response.text();
             console.log('업로드 성공:', imageUrl);
-            return imageUrl.trim(); // 공백 제거
+            return imageUrl.trim();
         } catch (error) {
             console.error('S3 업로드 실패 상세:', error);
             throw error;
         }
     };
 
-    // S3에서 이미지 삭제
+    /**
+     * S3에서 이미지 삭제 (이전 프로필 이미지 정리용)
+     * @param {string} imageUrl - 삭제할 이미지 URL
+     */
     const deleteImageFromS3 = async (imageUrl) => {
         try {
             const response = await fetch(`${API_BASE_URL}/test/s3/delete`, {
@@ -231,17 +270,20 @@ const ProfileManagement = ({ navigation }) => {
             }
         } catch (error) {
             console.error('S3 삭제 실패:', error);
+            // 삭제 실패는 치명적이지 않으므로 에러를 throw하지 않음
         }
     };
 
-    // 이미지 선택
+    /**
+     * 갤러리에서 이미지 선택
+     */
     const pickImage = async () => {
         try {
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ['images'],
                 allowsEditing: true,
                 aspect: [1, 1],
-                quality: 0.7, // 품질 낮춤 (0.8 -> 0.7) - 파일 크기 감소
+                quality: CONSTANTS.IMAGE_QUALITY,
             });
 
             console.log('이미지 선택 결과:', result);
@@ -274,7 +316,9 @@ const ProfileManagement = ({ navigation }) => {
         }
     };
 
-    // 사진 촬영
+    /**
+     * 카메라로 사진 촬영
+     */
     const takePhoto = async () => {
         try {
             // 카메라 권한 요청
@@ -285,10 +329,10 @@ const ProfileManagement = ({ navigation }) => {
             }
 
             const result = await ImagePicker.launchCameraAsync({
-                mediaTypes: ['images'], // 수정: 배열 형식으로 변경
+                mediaTypes: ['images'],
                 allowsEditing: true,
                 aspect: [1, 1],
-                quality: 0.7, // 품질 낮춤 (0.8 -> 0.7) - 파일 크기 감소
+                quality: CONSTANTS.IMAGE_QUALITY,
             });
 
             console.log('사진 촬영 결과:', result);
@@ -321,7 +365,9 @@ const ProfileManagement = ({ navigation }) => {
         }
     };
 
-    // 프로필 사진 삭제
+    /**
+     * 프로필 사진 삭제 확인 및 처리
+     */
     const deleteProfileImage = () => {
         Alert.alert(
             '프로필 사진 삭제',
@@ -342,7 +388,9 @@ const ProfileManagement = ({ navigation }) => {
         );
     };
 
-    // 프로필 사진 변경 옵션
+    /**
+     * 이미지 변경 옵션 선택 다이얼로그 표시
+     */
     const handleImagePicker = () => {
         const options = [
             {
@@ -355,7 +403,7 @@ const ProfileManagement = ({ navigation }) => {
             }
         ];
 
-        // 현재 프로필 사진이 있으면 삭제 옵션 추가
+        // 현재 프로필 이미지가 있는 경우 삭제 옵션 추가
         if (profileImage) {
             options.push({
                 text: '프로필 사진 삭제',
@@ -372,44 +420,81 @@ const ProfileManagement = ({ navigation }) => {
         Alert.alert('프로필 사진 변경', '옵션을 선택해주세요', options);
     };
 
-    // 닉네임 중복 체크 (debounced)
+    /**
+     * 닉네임 중복 확인 API 호출
+     * @param {string} nicknameToCheck - 확인할 닉네임
+     */
+    const checkNicknameAvailability = async (nicknameToCheck) => {
+        try {
+            setCheckingNickname(true);
+            
+            const response = await fetch(
+                `${API_BASE_URL}/api/members/check-nickname?nickname=${encodeURIComponent(nicknameToCheck)}`,
+                {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+
+            const data = await response.json();
+
+            if (data.isSuccess && data.result) {
+                setNicknameAvailable(data.result.available);
+            } else {
+                setNicknameAvailable(null);
+            }
+        } catch (error) {
+            console.error('닉네임 중복 확인 실패:', error);
+            setNicknameAvailable(null);
+        } finally {
+            setCheckingNickname(false);
+        }
+    };
+
+    /**
+     * 닉네임 변경 핸들러 (디바운스 적용)
+     * @param {string} text - 입력된 닉네임
+     */
     const handleNicknameChange = (text) => {
         setNickname(text);
         setNicknameAvailable(null);
 
-        // 기존 타이머 클리어
-        if (nicknameCheckTimeout) {
-            clearTimeout(nicknameCheckTimeout);
+        // 이전 타임아웃 정리
+        if (nicknameCheckTimeoutRef.current) {
+            clearTimeout(nicknameCheckTimeoutRef.current);
         }
 
-        // 원래 닉네임과 같으면 체크 안 함
+        // 현재 닉네임과 동일하면 중복 확인 불필요
         if (text === userData?.nickname) {
-            setNicknameAvailable(null);
             return;
         }
 
-        if (text.length < 2) {
-            setNicknameAvailable(null);
+        // 최소 길이 미만이면 중복 확인 불필요
+        if (text.length < CONSTANTS.MIN_NICKNAME_LENGTH) {
             return;
         }
 
-        // 새 타이머 설정 (디바운스)
-        const timeout = setTimeout(() => {
-            // 실제로는 백엔드에서 저장 시점에 중복 체크를 하므로
-            // 프론트에서는 기본 검증만 수행
-            setNicknameAvailable(true);
-        }, 500);
-        
-        setNicknameCheckTimeout(timeout);
+        // 디바운스: 입력 후 일정 시간 대기 후 중복 확인
+        nicknameCheckTimeoutRef.current = setTimeout(() => {
+            checkNicknameAvailability(text);
+        }, CONSTANTS.NICKNAME_CHECK_DELAY);
     };
 
+    /**
+     * 폼 유효성 검증
+     * @returns {boolean} 유효성 검증 통과 여부
+     */
     const validateForm = () => {
-        if (nickname.length < 2) {
-            Alert.alert('오류', '닉네임은 2자 이상이어야 합니다.');
+        // 닉네임 길이 확인
+        if (nickname.length < CONSTANTS.MIN_NICKNAME_LENGTH) {
+            Alert.alert('오류', `닉네임은 ${CONSTANTS.MIN_NICKNAME_LENGTH}자 이상이어야 합니다.`);
             return false;
         }
 
-        // 비밀번호 변경 시 유효성 검사
+        // 비밀번호 변경 시 유효성 검증
         if (currentPassword || newPassword) {
             if (!currentPassword) {
                 Alert.alert('오류', '현재 비밀번호를 입력해주세요.');
@@ -419,8 +504,8 @@ const ProfileManagement = ({ navigation }) => {
                 Alert.alert('오류', '새 비밀번호를 입력해주세요.');
                 return false;
             }
-            if (newPassword.length < 6) {
-                Alert.alert('오류', '새 비밀번호는 6자 이상이어야 합니다.');
+            if (newPassword.length < CONSTANTS.MIN_PASSWORD_LENGTH) {
+                Alert.alert('오류', `새 비밀번호는 ${CONSTANTS.MIN_PASSWORD_LENGTH}자 이상이어야 합니다.`);
                 return false;
             }
             if (currentPassword === newPassword) {
@@ -432,7 +517,10 @@ const ProfileManagement = ({ navigation }) => {
         return true;
     };
 
-    // Firebase 비밀번호 변경
+    /**
+     * Firebase에서 비밀번호 변경
+     * @returns {Promise<boolean>} 성공 여부
+     */
     const changePasswordInFirebase = async () => {
         try {
             const user = auth.currentUser;
@@ -441,43 +529,44 @@ const ProfileManagement = ({ navigation }) => {
                 throw new Error('로그인 정보를 찾을 수 없습니다.');
             }
 
-            // 현재 비밀번호로 재인증
-            const credential = EmailAuthProvider.credential(
-                user.email,
-                currentPassword
-            );
-            
+            // 재인증 (보안을 위해 비밀번호 변경 전 필수)
+            const credential = EmailAuthProvider.credential(user.email, currentPassword);
             await reauthenticateWithCredential(user, credential);
             
-            // 비밀번호 변경
+            // 비밀번호 업데이트
             await updatePassword(user, newPassword);
             
             return true;
         } catch (error) {
             console.error('비밀번호 변경 실패:', error);
             
-            // Firebase 에러 메시지 한글화
+            // Firebase 에러 코드에 따른 사용자 친화적 메시지
             let errorMessage = '비밀번호 변경에 실패했습니다.';
             
-            if (error.code === 'auth/wrong-password') {
-                errorMessage = '현재 비밀번호가 올바르지 않습니다.';
-            } else if (error.code === 'auth/weak-password') {
-                errorMessage = '새 비밀번호가 너무 약합니다.';
-            } else if (error.code === 'auth/requires-recent-login') {
-                errorMessage = '보안을 위해 다시 로그인해주세요.';
-            } else if (error.code === 'auth/invalid-credential') {
-                errorMessage = '현재 비밀번호가 올바르지 않습니다.';
+            switch (error.code) {
+                case 'auth/wrong-password':
+                case 'auth/invalid-credential':
+                    errorMessage = '현재 비밀번호가 올바르지 않습니다.';
+                    break;
+                case 'auth/weak-password':
+                    errorMessage = '새 비밀번호가 너무 약합니다.';
+                    break;
+                case 'auth/requires-recent-login':
+                    errorMessage = '보안을 위해 다시 로그인해주세요.';
+                    break;
             }
             
             throw new Error(errorMessage);
         }
     };
 
-    // 프로필 저장
+    /**
+     * 프로필 저장 (닉네임, 프로필 이미지, 비밀번호)
+     */
     const handleSave = async () => {
         if (!validateForm()) return;
 
-        // 변경사항 확인
+        // 변경 사항 확인
         const hasProfileChanges = nickname !== userData?.nickname || profileImage !== originalProfileImage;
         const hasPasswordChange = currentPassword && newPassword;
 
@@ -488,33 +577,33 @@ const ProfileManagement = ({ navigation }) => {
 
         setSaving(true);
         try {
-            // 1. 비밀번호 변경 (있는 경우)
+            // 1. 비밀번호 변경 (Firebase)
             if (hasPasswordChange) {
                 setChangingPassword(true);
                 await changePasswordInFirebase();
                 setChangingPassword(false);
             }
 
-            // 2. 프로필 정보 변경 (있는 경우)
+            // 2. 프로필 정보 변경 (백엔드 API)
             if (hasProfileChanges) {
                 const updateData = {};
                 
-                // 변경된 필드만 포함
+                // 닉네임 변경
                 if (nickname !== userData?.nickname) {
                     updateData.nickname = nickname.trim();
                 }
                 
-                // 프로필 이미지가 변경된 경우
+                // 프로필 이미지 변경
                 if (profileImage !== originalProfileImage) {
-                    // 새 이미지가 있으면 추가, 없으면 null로 설정 (삭제)
                     updateData.profileImg = profileImage || null;
                     
-                    // 기존 이미지가 있었고 변경되었다면 S3에서 삭제
+                    // 이전 이미지 삭제 (새 이미지로 변경된 경우)
                     if (originalProfileImage && profileImage !== originalProfileImage) {
                         await deleteImageFromS3(originalProfileImage);
                     }
                 }
 
+                // 프로필 업데이트 API 호출
                 const response = await fetch(`${API_BASE_URL}/api/members/profile`, {
                     method: 'PATCH',
                     headers: {
@@ -527,13 +616,10 @@ const ProfileManagement = ({ navigation }) => {
                 const data = await response.json();
 
                 if (!response.ok) {
-                    // 닉네임 중복 오류 처리
-                    if (data.code === 'MEMBER_400') {
-                        throw new Error('이미 사용 중인 닉네임입니다.');
-                    }
                     throw new Error(data.message || '프로필 수정에 실패했습니다.');
                 }
 
+                // 업데이트된 프로필 정보로 상태 갱신
                 if (data.isSuccess && data.result) {
                     setUserData(data.result);
                     setNickname(data.result.nickname || '');
@@ -542,11 +628,12 @@ const ProfileManagement = ({ navigation }) => {
                 }
             }
 
-            // 비밀번호 필드 초기화
+            // 비밀번호 입력 필드 초기화
             setCurrentPassword('');
             setNewPassword('');
             setNicknameAvailable(null);
             
+            // 성공 메시지
             let successMessage = '프로필이 성공적으로 저장되었습니다.';
             if (hasPasswordChange && hasProfileChanges) {
                 successMessage = '프로필과 비밀번호가 성공적으로 변경되었습니다.';
@@ -564,6 +651,10 @@ const ProfileManagement = ({ navigation }) => {
         }
     };
 
+    /**
+     * 닉네임 중복 확인 상태 렌더링
+     * @returns {JSX.Element|null} 상태 표시 컴포넌트
+     */
     const renderNicknameStatus = () => {
         if (checkingNickname) {
             return (
@@ -573,17 +664,20 @@ const ProfileManagement = ({ navigation }) => {
             );
         }
 
+        // 사용 가능한 닉네임
         if (nicknameAvailable === true && nickname !== userData?.nickname) {
             return <Text style={styles.successText}>* 사용 가능한 닉네임입니다.</Text>;
         }
 
+        // 이미 사용 중인 닉네임
         if (nicknameAvailable === false) {
-            return <Text style={styles.errorText}>* 사용할 수 없는 닉네임입니다.</Text>;
+            return <Text style={styles.errorText}>* 이미 존재하는 닉네임입니다.</Text>;
         }
 
         return null;
     };
 
+    // 로딩 중 화면
     if (loading) {
         return (
             <SafeAreaView style={styles.container}>
@@ -596,6 +690,7 @@ const ProfileManagement = ({ navigation }) => {
         );
     }
 
+    // 프로필 로딩 실패 화면
     if (!userData) {
         return (
             <SafeAreaView style={styles.container}>
@@ -614,6 +709,7 @@ const ProfileManagement = ({ navigation }) => {
         );
     }
 
+    // 메인 화면
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" />
@@ -675,7 +771,7 @@ const ProfileManagement = ({ navigation }) => {
                         )}
                     </View>
 
-                    {/* 이메일 섹션 */}
+                    {/* 이메일 (수정 불가) */}
                     <View style={styles.inputSection}>
                         <Text style={styles.label}>이메일</Text>
                         <View style={styles.disabledInput}>
@@ -683,7 +779,7 @@ const ProfileManagement = ({ navigation }) => {
                         </View>
                     </View>
 
-                    {/* 이름 섹션 */}
+                    {/* 이름 (수정 불가) */}
                     <View style={styles.inputSection}>
                         <Text style={styles.label}>이름</Text>
                         <View style={styles.disabledInput}>
@@ -691,7 +787,7 @@ const ProfileManagement = ({ navigation }) => {
                         </View>
                     </View>
 
-                    {/* 현재 비밀번호 섹션 */}
+                    {/* 현재 비밀번호 */}
                     <View style={styles.inputSection}>
                         <Text style={styles.label}>현재 비밀번호</Text>
                         <View style={styles.passwordInputContainer}>
@@ -713,7 +809,7 @@ const ProfileManagement = ({ navigation }) => {
                         </View>
                     </View>
 
-                    {/* 새 비밀번호 섹션 */}
+                    {/* 새 비밀번호 */}
                     <View style={styles.inputSection}>
                         <Text style={styles.label}>새 비밀번호</Text>
                         <View style={styles.passwordInputContainer}>
@@ -740,7 +836,7 @@ const ProfileManagement = ({ navigation }) => {
                         </View>
                     </View>
 
-                    {/* 닉네임 섹션 */}
+                    {/* 닉네임 (중복 확인 포함) */}
                     <View style={styles.inputSection}>
                         <View style={styles.labelRow}>
                             <Text style={styles.label}>닉네임</Text>
@@ -757,7 +853,7 @@ const ProfileManagement = ({ navigation }) => {
                             value={nickname}
                             onChangeText={handleNicknameChange}
                             editable={!saving}
-                            maxLength={20}
+                            maxLength={CONSTANTS.MAX_NICKNAME_LENGTH}
                         />
                     </View>
 
