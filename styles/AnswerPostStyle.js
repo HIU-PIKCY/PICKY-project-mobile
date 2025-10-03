@@ -62,6 +62,11 @@ export const answerPostStyle = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
     },
+    inputActionsReply: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+    },
     aiAnswerButton: {
         flexDirection: 'row',
         justifyContent: 'center',

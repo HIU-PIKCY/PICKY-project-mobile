@@ -153,7 +153,8 @@ const AnswerPost = ({
                             editable={!submittingAnswer}
                         />
                     </View>
-                    <View style={answerPostStyle.inputActions}>
+                    {/* 답글 모드일 때와 일반 답변 모드일 때 다른 레이아웃 */}
+                    <View style={replyingTo ? answerPostStyle.inputActionsReply : answerPostStyle.inputActions}>
                         {/* 답글 모드가 아닐 때만 AI 답변 생성 버튼 표시 */}
                         {!replyingTo && (
                             <TouchableOpacity 
