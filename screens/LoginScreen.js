@@ -143,16 +143,19 @@ const LoginScreen = ({ navigation }) => {
                             {loading ? (
                                 <ActivityIndicator size="small" color="#fff" />
                             ) : (
-                                <Text style={styles.loginButtonText}>로그인하기</Text>
+                                <Text style={styles.loginButtonText}>로그인</Text>
                             )}
                         </TouchableOpacity>
                     </View>
 
                     {/* 회원가입 링크 */}
                     <View style={styles.registerContainer}>
-                        <TouchableOpacity onPress={handleRegister} disabled={loading}>
-                            <Text style={styles.registerText}>계정이 없으신가요? 회원가입</Text>
-                        </TouchableOpacity>
+                        <View style={styles.registerTextContainer}>
+                            <Text style={styles.registerText}>계정이 없으신가요? </Text>
+                            <TouchableOpacity onPress={handleRegister} disabled={loading}>
+                                <Text style={[styles.registerText, styles.registerLink]}>회원가입</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             </KeyboardAvoidingView>
@@ -219,11 +222,18 @@ const styles = StyleSheet.create({
     registerContainer: {
         alignItems: 'center',
     },
+    registerTextContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
     registerText: {
         fontSize: 14,
         fontFamily: 'SUIT-Medium',
         color: '#666',
         letterSpacing: -0.35,
+    },
+    registerLink: {
+        textDecorationLine: 'underline',
     },
 });
 

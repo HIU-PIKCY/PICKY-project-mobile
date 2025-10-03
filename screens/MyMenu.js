@@ -514,8 +514,8 @@ const styles = StyleSheet.create({
         paddingVertical: 20,
     },
     logoutButton: {
-        width: '90%',
-        alignSelf: 'center',
+        // width: '90%',
+        // alignSelf: 'center',
         paddingVertical: 16,
         borderRadius: 8,
         backgroundColor: '#0D2525',
