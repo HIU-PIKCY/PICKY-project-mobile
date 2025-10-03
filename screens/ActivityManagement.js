@@ -16,7 +16,7 @@ import CustomHeader from '../components/CustomHeader';
 import { useAuth } from '../AuthContext';
 
 const ActivityManagement = ({ navigation }) => {
-    const [activeTab, setActiveTab] = useState('question'); // 'question', 'answer', 'like'
+    const [activeTab, setActiveTab] = useState('question');
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState(null);
@@ -28,11 +28,8 @@ const ActivityManagement = ({ navigation }) => {
     });
 
     const { authenticatedFetch } = useAuth();
-    
-    // 서버 API URL
     const API_BASE_URL = 'http://13.124.86.254';
 
-    // API 엔드포인트 매핑
     const getEndpoint = (tab) => {
         switch (tab) {
             case 'question':
@@ -72,7 +69,6 @@ const ActivityManagement = ({ navigation }) => {
             if (responseData.isSuccess && responseData.result) {
                 let formattedData = [];
 
-                // 탭별 데이터 변환
                 if (activeTab === 'question' && responseData.result.questions) {
                     formattedData = responseData.result.questions.map(item => ({
                         id: item.id,
@@ -90,9 +86,6 @@ const ActivityManagement = ({ navigation }) => {
                         title: item.title,
                         questionTitle: item.questionTitle,
                         questionId: item.questionId,
-                        likes: item.likes || 0,
-                        comments: item.comments || 0,
-                        views: item.views || 0,
                         createdAt: item.createdAt || new Date().toISOString()
                     }));
                 } else if (activeTab === 'like' && responseData.result.likes) {
@@ -110,13 +103,11 @@ const ActivityManagement = ({ navigation }) => {
                     }));
                 }
 
-                // 상태 키를 복수형으로 통일
                 const stateKey = activeTab === 'question' ? 'questions' : 
                                activeTab === 'answer' ? 'answers' : 'likes';
                 
                 setData(prev => ({ ...prev, [stateKey]: formattedData }));
             } else {
-                // 데이터가 없는 경우 빈 배열로 설정
                 const stateKey = activeTab === 'question' ? 'questions' : 
                                activeTab === 'answer' ? 'answers' : 'likes';
                 setData(prev => ({ ...prev, [stateKey]: [] }));
@@ -126,7 +117,6 @@ const ActivityManagement = ({ navigation }) => {
             console.error('활동 데이터 로딩 실패:', error);
             setError(error.message);
             
-            // 인증 에러 처리
             if (error.message.includes('인증') || error.message.includes('401')) {
                 Alert.alert('인증 오류', '로그인이 필요합니다. 다시 로그인해주세요.', [
                     {
@@ -153,7 +143,6 @@ const ActivityManagement = ({ navigation }) => {
     };
 
     const handleItemPress = (item, type) => {
-        // 타입별로 다른 화면으로 네비게이션
         switch (type) {
             case 'question':
                 navigation.navigate('QuestionDetail', { questionId: item.id });
@@ -209,20 +198,23 @@ const ActivityManagement = ({ navigation }) => {
                          type === 'answer' ? item.questionTitle :
                          `${item.author} | ${item.time}`}
                     </Text>
-                    <View style={styles.activityStats}>
-                        <View style={styles.statItem}>
-                            <Ionicons name="heart-outline" size={16} color="#666666" />
-                            <Text style={styles.statText}>{item.likes}</Text>
+                    {/* 답변 탭이 아닐 때만 통계 표시 */}
+                    {type !== 'answer' && (
+                        <View style={styles.activityStats}>
+                            <View style={styles.statItem}>
+                                <Ionicons name="heart-outline" size={16} color="#666666" />
+                                <Text style={styles.statText}>{item.likes}</Text>
+                            </View>
+                            <View style={styles.statItem}>
+                                <Ionicons name="chatbubble-outline" size={16} color="#666666" />
+                                <Text style={styles.statText}>{item.comments}</Text>
+                            </View>
+                            <View style={styles.statItem}>
+                                <Ionicons name="eye-outline" size={16} color="#666666" />
+                                <Text style={styles.statText}>{item.views}</Text>
+                            </View>
                         </View>
-                        <View style={styles.statItem}>
-                            <Ionicons name="chatbubble-outline" size={16} color="#666666" />
-                            <Text style={styles.statText}>{item.comments}</Text>
-                        </View>
-                        <View style={styles.statItem}>
-                            <Ionicons name="eye-outline" size={16} color="#666666" />
-                            <Text style={styles.statText}>{item.views}</Text>
-                        </View>
-                    </View>
+                    )}
                 </View>
             </TouchableOpacity>
             <View style={styles.divider} />
@@ -410,9 +402,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#E8E8E8',
         width: '100%',
     },
-    activityContent: {
-        marginBottom: 12,
-    },
     activityTitle: {
         fontSize: 16,
         fontFamily: 'SUIT-SemiBold',
@@ -421,17 +410,11 @@ const styles = StyleSheet.create({
         lineHeight: 24,
         marginBottom: 8,
         letterSpacing: -0.35,
-        numberOfLines: 1,
-        overflow: 'hidden',
     },
     activityInfoRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-    },
-    activityInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
     },
     activityMeta: {
         fontSize: 14,
