@@ -12,7 +12,7 @@ import {
     Image,
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
-import { styles } from "../styles/MainScreenStyle";
+import { styles } from "../styles/MyLibraryStyle";
 import CustomHeader from '../components/CustomHeader';
 import { useAuth } from "../AuthContext";
 
@@ -338,7 +338,6 @@ const MyLibrary = () => {
     );
 };
 
-// BookCard 스타일을 컴포넌트 내에 정의
 const bookCardStyles = {
     bookCard: {
         width: '28%',
