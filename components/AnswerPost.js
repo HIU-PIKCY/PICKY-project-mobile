@@ -62,6 +62,7 @@ const AnswerPost = ({
 
         setSubmittingAIAnswer(true);
         try {
+            // AI 답변을 실제로 등록
             const success = await onSubmitAnswer(generatedAIAnswer, true);
             if (success) {
                 setGeneratedAIAnswer(null);

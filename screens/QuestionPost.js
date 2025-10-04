@@ -27,11 +27,9 @@ export const AIQuestionSheet = forwardRef((props, ref) => {
   const [generatedQuestion, setGeneratedQuestion] = useState(null);
   const [isSubmittingGenerated, setIsSubmittingGenerated] = useState(false);
 
-  // AuthContext에서 authenticatedFetch 가져오기
   const { authenticatedFetch } = useAuth();
   const API_BASE_URL = 'http://13.124.86.254';
 
-  // 태그와 백엔드 QuestionType 매핑
   const tagMapping = {
     "주제": "SUBJECT",
     "인물": "CHARACTER",
@@ -39,12 +37,7 @@ export const AIQuestionSheet = forwardRef((props, ref) => {
     "지식": "KNOWLEDGE"
   };
 
-  const tags = [
-    "주제",
-    "인물",
-    "서사",
-    "지식",
-  ];
+  const tags = ["주제", "인물", "서사", "지식"];
 
   const resetAIForm = () => {
     setSelectedTag(null);
@@ -106,7 +99,7 @@ export const AIQuestionSheet = forwardRef((props, ref) => {
       console.log('AI 질문 생성 응답:', data);
       
       // 페이지 번호 처리
-      let pageNumber = null;
+      let pageNumber = 0;
       if (page && page.trim()) {
         const parsed = parseInt(page.trim(), 10);
         if (!isNaN(parsed) && parsed > 0) {
@@ -114,16 +107,14 @@ export const AIQuestionSheet = forwardRef((props, ref) => {
         }
       }
       
-      // 백엔드가 QuestionPostResponseDTO를 반환
-      // { id, title, content, page, isAI, createdAt }
+      // AI 응답을 받아서 generatedQuestion state에 저장 (디비에 저장하지 않음)
       if (data && data.title && data.content) {
         setGeneratedQuestion({
-          id: data.id,
           title: data.title,
           content: data.content,
           page: pageNumber,
           category: selectedTag,
-          isAI: data.isAI
+          isAI: true
         });
       } else {
         throw new Error('AI 질문 생성 응답 형식이 올바르지 않습니다.');
@@ -144,18 +135,41 @@ export const AIQuestionSheet = forwardRef((props, ref) => {
     try {
       console.log('AI 생성 질문 등록:', `${API_BASE_URL}/api/books/${props.bookId}/questions`);
 
-      // AI가 이미 질문을 생성했으므로 해당 질문을 그대로 사용
-      // 백엔드에서 이미 저장되어 id가 있으므로, 별도 등록이 필요없을 수 있음
-      // 하지만 사용자가 페이지를 추가했다면 업데이트 필요
-      
-      // 부모 컴포넌트에 성공 알림
-      if (props.onSubmit) {
-        props.onSubmit();
+      // AI 생성된 질문을 실제로 등록
+      const requestBody = {
+        title: generatedQuestion.title,
+        content: generatedQuestion.content,
+        page: generatedQuestion.page,
+        isAI: true
+      };
+
+      console.log('요청 body:', requestBody);
+
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/books/${props.bookId}/questions`, {
+        method: 'POST',
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('AI 질문 등록 에러:', errorText);
+        throw new Error(`AI 질문 등록 실패! status: ${response.status}`);
       }
 
-      resetAIForm();
-      ref.current?.close();
-      Alert.alert('완료', 'AI 질문이 등록되었습니다.');
+      const data = await response.json();
+      console.log('AI 질문 등록 응답:', data);
+      
+      if (data.isSuccess) {
+        if (props.onSubmit) {
+          props.onSubmit();
+        }
+
+        resetAIForm();
+        ref.current?.close();
+        Alert.alert('완료', 'AI 질문이 등록되었습니다.');
+      } else {
+        throw new Error(data.message || 'AI 질문 등록에 실패했습니다.');
+      }
       
     } catch (error) {
       console.error('AI 질문 등록 실패:', error);
@@ -169,7 +183,6 @@ export const AIQuestionSheet = forwardRef((props, ref) => {
     resetAIForm();
   };
 
-  // 모달이 닫힐 때 폼 리셋
   const handleModalClose = () => {
     resetAIForm();
   };
@@ -327,7 +340,6 @@ export const QuestionWriteSheet = forwardRef(({ onSubmit, bookId }, ref) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // AuthContext에서 authenticatedFetch 가져오기
   const { authenticatedFetch } = useAuth();
   const API_BASE_URL = 'http://13.124.86.254';
 
@@ -339,7 +351,6 @@ export const QuestionWriteSheet = forwardRef(({ onSubmit, bookId }, ref) => {
   };
 
   const handleSubmit = async () => {
-    // 유효성 검사
     if (!title.trim()) {
       Alert.alert("알림", "제목을 입력해주세요.");
       return;
@@ -360,7 +371,6 @@ export const QuestionWriteSheet = forwardRef(({ onSubmit, bookId }, ref) => {
     try {
       console.log('질문 등록 요청:', `${API_BASE_URL}/api/books/${bookId}/questions`);
 
-      // 페이지 번호 처리: 비어있거나 유효하지 않으면 0 전송
       let pageNumber = 0;
       if (page && page.trim()) {
         const parsed = parseInt(page.trim(), 10);
@@ -369,11 +379,11 @@ export const QuestionWriteSheet = forwardRef(({ onSubmit, bookId }, ref) => {
         }
       }
 
-      // 요청 body 생성
       const requestBody = {
         title: title.trim(),
         content: body.trim(),
-        page: pageNumber
+        page: pageNumber,
+        isAI: false
       };
 
       console.log('요청 body:', requestBody);
@@ -392,14 +402,11 @@ export const QuestionWriteSheet = forwardRef(({ onSubmit, bookId }, ref) => {
       const data = await response.json();
       console.log('질문 등록 응답:', data);
       
-      // ApiResponse 구조: { isSuccess, code, message, result }
       if (data.isSuccess) {
-        // 부모 컴포넌트에 성공 알림
         if (onSubmit) {
           onSubmit();
         }
 
-        // 폼 리셋
         resetForm();
         Keyboard.dismiss();
         ref.current?.close();
@@ -415,7 +422,6 @@ export const QuestionWriteSheet = forwardRef(({ onSubmit, bookId }, ref) => {
     }
   };
 
-  // 모달이 닫힐 때 폼 리셋
   const handleModalClose = () => {
     resetForm();
   };

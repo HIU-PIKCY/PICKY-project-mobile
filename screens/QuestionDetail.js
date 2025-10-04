@@ -352,8 +352,8 @@ const QuestionDetail = ({ navigation, route }) => {
                     method: 'POST',
                     body: JSON.stringify({ 
                         content: content.trim(),
-                        isAI: false,
-                        parentAnswerId: replyingTo  // 부모 답변 ID 추가
+                        isAI: isAI,
+                        parentAnswerId: replyingTo
                     })
                 });
 
@@ -380,7 +380,7 @@ const QuestionDetail = ({ navigation, route }) => {
                     body: JSON.stringify({
                         content: content.trim(),
                         isAI: isAI,
-                        parentAnswerId: null  // 일반 답변은 null
+                        parentAnswerId: null
                     })
                 });
 
@@ -418,7 +418,10 @@ const QuestionDetail = ({ navigation, route }) => {
             }
 
             const data = await response.json();
+            console.log('AI 답변 생성 응답:', data);
             
+            // 백엔드가 AnswerCreateResponseDTO를 반환하지만 아직 DB에 저장하지 않음
+            // content만 반환받아서 프론트에서 미리보기로 표시
             if (data && data.content) {
                 return data.content;
             } else {
