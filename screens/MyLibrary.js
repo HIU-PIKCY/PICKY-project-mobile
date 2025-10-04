@@ -344,11 +344,10 @@ const bookCardStyles = {
         marginRight: '8%',
         marginBottom: 20,
         alignItems: 'flex-start',
-        height: 195,
     },
     coverWrapper: {
         width: '100%',
-        height: 135,
+        aspectRatio: 0.7,
         marginBottom: 8,
         borderRadius: 4,
         overflow: 'hidden',
@@ -372,6 +371,7 @@ const bookCardStyles = {
         color: '#666666',
         marginBottom: 2,
         width: '100%',
+        lineHeight: 16,
     },
     bookAuthor: {
         fontFamily: 'SUIT-Medium',
@@ -379,17 +379,16 @@ const bookCardStyles = {
         color: '#888888',
         marginBottom: 6,
         width: '100%',
+        lineHeight: 14,
     },
     statusBadge: {
         width: '100%',
-        paddingHorizontal: 30.5,
         paddingVertical: 3,
         borderRadius: 4,
         alignSelf: 'center',
-        position: 'absolute',
-        bottom: 0,
         minHeight: 18,
         justifyContent: 'center',
+        marginTop: 4,
     },
     readingBadge: {
         borderWidth: 0.5,
@@ -402,6 +401,7 @@ const bookCardStyles = {
         fontFamily: 'SUIT-SemiBold',
         fontSize: 10,
         textAlign: 'center',
+        lineHeight: 12,
     },
     readingText: {
         color: '#0D2525',
