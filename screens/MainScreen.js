@@ -14,121 +14,45 @@ import { Ionicons } from '@expo/vector-icons';
 import TitleSVG from "../assets/icons/PICKY.svg";
 import AlarmSVG from "../assets/icons/Alarm.svg";
 import styles from "../styles/MainScreenStyle";
+import { useAuth } from "../AuthContext";
+
+const API_BASE_URL = "http://13.124.86.254";
 
 const MainScreen = () => {
   const navigation = useNavigation();
+  const { authenticatedFetch } = useAuth();
 
+  // 상태 관리
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [userData, setUserData] = useState(null);
   const [hotTopic, setHotTopic] = useState(null);
   const [weeklyKeywords, setWeeklyKeywords] = useState([]);
+  const [weekInfo, setWeekInfo] = useState("");
   const [mostQuestionedBooks, setMostQuestionedBooks] = useState([]);
   const [hasNewNotifications, setHasNewNotifications] = useState(false);
 
-  // 더미 데이터 - 실제 구현 시 API 호출로 대체
-  const dummyData = {
-    userData: {
-      name: "키피럽",
-      totalBooks: 12,
-      totalQA: 24
-    },
-    hotTopic: {
-      questionId: 1,
-      title: "작가의 의도는?",
-      description: "김첨지의 상황에 깊이 공감한 작성자와 몇몇 작성자들이 현재 시대라면 어땠을까 하고 공유한다.",
-      tags: ["토픽", "서사불쌍", "무한공감"],
-      likes: 12,
-      comments: 23,
-      views: 51,
-      book: {
-        id: 1,
-        title: "운수 좋은 날",
-        author: "현진건",
-        coverImage: "https://contents.kyobobook.co.kr/sih/fit-in/400x0/pdt/9788973811755.jpg"
-      }
-    },
-    weeklyKeywords: {
-      keywords: [
-        { text: "대입", rank: 1, count: 45 },
-        { text: "금전", rank: 2, count: 32 },
-        { text: "환경", rank: 3, count: 28 }
-      ],
-      weekInfo: getCurrentWeekInfo()
-    },
-    mostQuestionedBooks: [
-      {
-        id: 1,
-        title: "노스텔지어, 어느 위험한 감정의 연대기",
-        author: "애그니스 아널드포스터",
-        coverImage: "https://contents.kyobobook.co.kr/sih/fit-in/400x0/pdt/9791167741684.jpg",
-        questionCount: 45
-      },
-      {
-        id: 2,
-        title: "운수 좋은 날",
-        author: "현진건",
-        coverImage: "https://contents.kyobobook.co.kr/sih/fit-in/400x0/pdt/9788973811755.jpg",
-        questionCount: 38
-      },
-      {
-        id: 3,
-        title: "코스모스",
-        author: "칼 세이건",
-        coverImage: "https://contents.kyobobook.co.kr/sih/fit-in/200x0/pdt/9788983711892.jpg",
-        questionCount: 32
-      },
-      {
-        id: 4,
-        title: "1984",
-        author: "조지 오웰",
-        coverImage: "https://image.aladin.co.kr/product/41/89/letslook/S062933637_f.jpg",
-        questionCount: 28
-      },
-      {
-        id: 5,
-        title: "해리 포터와 마법사의 돌",
-        author: "J.K. 롤링",
-        coverImage: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcToSmMU_mIWeKIo8u84VpMgF7kPMR9SjVN2ug&s",
-        questionCount: 25
-      }
-    ],
-    hasNewNotifications: true
-  };
-
-  // 현재 날짜 기반으로 몇월 몇주차인지 계산
-  function getCurrentWeekInfo() {
-    const now = new Date();
-    const month = now.getMonth() + 1;
-    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const firstWeekStart = new Date(firstDayOfMonth);
-    firstWeekStart.setDate(firstDayOfMonth.getDate() - firstDayOfMonth.getDay());
-    const diffTime = now.getTime() - firstWeekStart.getTime();
-    const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7)) + 1;
-    return `${month}월 ${diffWeeks}주차`;
-  }
-
+  // 초기 데이터 로드
   useEffect(() => {
     loadInitialData();
   }, []);
 
-  // 화면 포커스 시 알림 상태 체크
+  // 화면 포커스 시 알림 확인
   useFocusEffect(
     React.useCallback(() => {
       checkNotifications();
     }, [])
   );
 
+  // 모든 초기 데이터 로드 (순차 실행으로 토큰 갱신 충돌 방지)
   const loadInitialData = async () => {
     setLoading(true);
     try {
-      await Promise.all([
-        loadUserData(),
-        loadHotTopic(),
-        loadWeeklyKeywords(),
-        loadMostQuestionedBooks(),
-        checkNotifications()
-      ]);
+      await loadUserData();
+      await loadHotTopic();
+      await loadWeeklyKeywords();
+      await loadMostQuestionedBooks();
+      await checkNotifications();
     } catch (error) {
       console.error('초기 데이터 로딩 실패:', error);
     } finally {
@@ -136,99 +60,150 @@ const MainScreen = () => {
     }
   };
 
+  // 사용자 데이터 로드
   const loadUserData = async () => {
     try {
-      // 실제 구현 시 API 호출
-      // const response = await apiService.getUserDashboard(userId);
-      // setUserData(response.data);
-      
-      // 더미 데이터 시뮬레이션
-      setTimeout(() => {
-        setUserData(dummyData.userData);
-      }, 300);
+      // TODO: 실제 사용자 대시보드 API 연동 필요
+      setUserData({
+        name: "키피럽",
+        totalBooks: 12,
+        totalQA: 24
+      });
     } catch (error) {
       console.error('사용자 데이터 로딩 실패:', error);
     }
   };
 
+  // 이번 주 핫 토픽 로드
   const loadHotTopic = async () => {
     try {
-      // 실제 구현 시 API 호출
-      // const response = await apiService.getWeeklyHotQuestion();
-      // setHotTopic(response.data);
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/home/hot-topic`, {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        throw new Error(`핫 토픽 조회 실패! status: ${response.status}`);
+      }
+
+      const data = await response.json();
       
-      // 더미 데이터 시뮬레이션
-      setTimeout(() => {
-        setHotTopic(dummyData.hotTopic);
-      }, 400);
+      if (data.isSuccess && data.result) {
+        const result = data.result;
+        setHotTopic({
+          questionId: result.questionId,
+          title: result.questionTitle,
+          description: result.aiSummary,
+          tags: result.hashtags.map(tag => tag.replace('#', '')),
+          likes: result.likes,
+          comments: result.comments,
+          views: result.views,
+          book: {
+            id: result.questionId,
+            title: result.bookTitle,
+            author: result.bookAuthor,
+            coverImage: result.bookCover
+          }
+        });
+        
+        // 주차 정보 저장 (키워드 섹션에서 사용)
+        if (result.weekInfo) {
+          setWeekInfo(result.weekInfo);
+        }
+      }
     } catch (error) {
       console.error('핫 토픽 로딩 실패:', error);
     }
   };
 
+  // 이번 주 키워드 로드
   const loadWeeklyKeywords = async () => {
     try {
-      // 실제 구현 시 API 호출
-      // const response = await apiService.getWeeklyKeywords();
-      // setWeeklyKeywords(response.data.keywords);
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/home/weekly-keywords`, {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        throw new Error(`주간 키워드 조회 실패! status: ${response.status}`);
+      }
+
+      const data = await response.json();
       
-      // 더미 데이터 시뮬레이션
-      setTimeout(() => {
-        setWeeklyKeywords(dummyData.weeklyKeywords.keywords);
-      }, 500);
+      if (data.isSuccess && data.result && data.result.keywords) {
+        setWeeklyKeywords(data.result.keywords.map(item => ({
+          text: item.keyword,
+          rank: item.rank
+        })));
+      }
     } catch (error) {
       console.error('주간 키워드 로딩 실패:', error);
     }
   };
 
+  // 이번 주 최다 질문 도서 로드
   const loadMostQuestionedBooks = async () => {
     try {
-      // 실제 구현 시 API 호출
-      // const response = await apiService.getMostQuestionedBooks();
-      // setMostQuestionedBooks(response.data.books);
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/home/most-questioned-books`, {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        // 403 에러는 권한 문제로 빈 데이터 처리
+        if (response.status === 403) {
+          setMostQuestionedBooks([]);
+          return;
+        }
+        throw new Error(`최다 질문 도서 조회 실패! status: ${response.status}`);
+      }
+
+      const data = await response.json();
       
-      // 더미 데이터 시뮬레이션
-      setTimeout(() => {
-        setMostQuestionedBooks(dummyData.mostQuestionedBooks);
-      }, 600);
+      if (data.isSuccess && data.result && data.result.books) {
+        // 최대 5권까지만 표시
+        const books = data.result.books.slice(0, 5).map(book => ({
+          id: book.bookId,
+          title: book.bookTitle,
+          author: book.bookAuthor,
+          coverImage: book.bookCover
+        }));
+        
+        setMostQuestionedBooks(books);
+        
+        // weekInfo가 아직 없다면 여기서 설정
+        if (!weekInfo && data.result.weekInfo) {
+          setWeekInfo(data.result.weekInfo);
+        }
+      }
     } catch (error) {
       console.error('최다 질문 도서 로딩 실패:', error);
+      setMostQuestionedBooks([]);
     }
   };
 
+  // 알림 확인
   const checkNotifications = async () => {
     try {
-      // 실제 구현 시 API 호출
-      // const response = await apiService.checkNewNotifications(userId);
-      // setHasNewNotifications(response.data.hasNew);
-      
-      // 더미 데이터 시뮬레이션
-      setHasNewNotifications(dummyData.hasNewNotifications);
+      // TODO: 실제 알림 API 연동 필요
+      setHasNewNotifications(false);
     } catch (error) {
       console.error('알림 확인 실패:', error);
     }
   };
 
+  // 새로고침 핸들러
   const onRefresh = async () => {
     setRefreshing(true);
     await loadInitialData();
     setRefreshing(false);
   };
 
-  const handleBookPress = (book) => {
-    navigation.navigate("BookDetail", {
-      bookId: book.id,
-      bookData: book,
-    });
-  };
-
+  // 알림 페이지로 이동
   const handleNotificationPress = () => {
     navigation.navigate("NotificationPage");
   };
 
+  // 핫 토픽 클릭 시 질문 상세로 이동
   const handleHotTopicPress = () => {
     if (hotTopic) {
-      // 핫 토픽 누르면 원본 질문으로 이동
       navigation.navigate("QuestionDetail", {
         questionId: hotTopic.questionId,
         questionData: {
@@ -249,6 +224,7 @@ const MainScreen = () => {
     }
   };
 
+  // 최다 질문 도서 클릭 시 책 상세로 이동
   const handleMostQuestionedBookPress = (book) => {
     navigation.navigate("BookDetail", {
       bookId: book.id,
@@ -256,6 +232,7 @@ const MainScreen = () => {
     });
   };
 
+  // 로딩 중 화면
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -275,6 +252,7 @@ const MainScreen = () => {
     );
   }
 
+  // 메인 화면
   return (
     <SafeAreaView style={styles.container}>
       {/* 헤더 */}
@@ -300,7 +278,7 @@ const MainScreen = () => {
           />
         }
       >
-        {/* 상단 메시지 및 통계 카드 */}
+        {/* 상단 인사 및 통계 카드 */}
         {userData && (
           <View style={styles.combinedCard}>
             <Text style={styles.infoText}>
@@ -324,7 +302,7 @@ const MainScreen = () => {
 
         {/* 민트색 배경 컨테이너 */}
         <View style={styles.roundedContainer}>
-          {/* 핫 토픽 섹션 */}
+          {/* 이번 주 핫 토픽 섹션 */}
           {hotTopic && (
             <View style={styles.section}>
               <Text style={styles.sectionSubtitle}>의견 공유가 활발했던 질문이에요!</Text>
@@ -382,7 +360,7 @@ const MainScreen = () => {
             </View>
           )}
 
-          {/* 키워드 섹션 */}
+          {/* 이번 주 키워드 섹션 */}
           {weeklyKeywords.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionSubtitle}>가장 많이 나온 키워드들 모았어요!</Text>
@@ -402,12 +380,12 @@ const MainScreen = () => {
                     <Text style={styles.keywordText}># {weeklyKeywords[2].text}</Text>
                   </View>
                 )}
-                <Text style={styles.keywordStats}>* {getCurrentWeekInfo()} 기준</Text>
+                <Text style={styles.keywordStats}>* {weekInfo} 기준</Text>
               </View>
             </View>
           )}
 
-          {/* 최다 질문 섹션 */}
+          {/* 이번 주 최다 질문 섹션 */}
           {mostQuestionedBooks.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionSubtitle}>질문이 많은 책을 소개해요!</Text>
