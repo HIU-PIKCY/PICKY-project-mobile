@@ -15,50 +15,29 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import LogoSVG from "../assets/icons/logoIcon.svg";
 import CustomHeader from '../components/CustomHeader';
+import { useAuth } from "../AuthContext";
+
+// 백엔드 서버 url
+const API_BASE_URL = "http://13.124.86.254";
 
 const Recommendation = ({ navigation }) => {
+    const { authenticatedFetch } = useAuth();
+    
     const [recommendationData, setRecommendationData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
-    // 더미 데이터 - 실제 구현 시 API 호출로 대체
-    const dummyRecommendationData = {
-        questionBased: {
-            book: {
-                id: 1,
-                title: '노스텔지어, 어느 위험한 감정의 연대기',
-                author: '애그니스 아널드포스터',
-                publisher: '어크로스',
-                pages: 320,
-                coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/400x0/pdt/9791167741684.jpg',
-                description: '문학 작품 해석에 관심이 많은 회원님께 추천'
-            },
-            reason: '작가의 의도는?'
+    // 더미 데이터 - 답변 기반 추천
+    const dummyAnswerBased = {
+        book: {
+            id: 2,
+            title: '운수 좋은 날',
+            author: '현진건',
+            coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/400x0/pdt/9788973811755.jpg',
+            isbn: '9788973811755',
+            description: '한국 근대문학의 대표작으로 섬세한 묘사를 좋아하는 회원님께 추천'
         },
-        answerBased: {
-            book: {
-                id: 2,
-                title: '운수 좋은 날',
-                author: '현진건',
-                publisher: '소담출판사',
-                pages: 231,
-                coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/400x0/pdt/9788973811755.jpg',
-                description: '한국 근대문학의 대표작으로 섬세한 묘사를 좋아하는 회원님께 추천'
-            },
-            reason: '어린 왕자'
-        },
-        keywordBased: {
-            book: {
-                id: 3,
-                title: '데미안',
-                author: '헤르만 헤세',
-                publisher: '민음사',
-                pages: 288,
-                coverImage: 'https://minumsa.minumsa.com/wp-content/uploads/bookcover/044_%EB%8D%B0%EB%AF%B8%EC%95%88-300x504.jpg',
-                description: '성장과 변화를 다루는 성장 소설에 관심이 많은 회원님께 추천'
-            },
-            keywords: ['성장', '변화']
-        }
+        reason: '어린 왕자'
     };
 
     useEffect(() => {
@@ -75,18 +54,90 @@ const Recommendation = ({ navigation }) => {
     const loadRecommendations = async () => {
         setLoading(true);
         try {
-            // 실제 구현 시 API 호출
-            // const response = await apiService.getUserRecommendations(userId);
-            // setRecommendationData(response.data);
-            
-            // 더미 데이터 시뮬레이션
-            setTimeout(() => {
-                setRecommendationData(dummyRecommendationData);
-                setLoading(false);
-            }, 500);
+            await Promise.all([
+                loadQuestionBasedRecommendation(),
+                loadPickyPickRecommendation()
+            ]);
         } catch (error) {
             console.error('추천 데이터 로딩 실패:', error);
+        } finally {
             setLoading(false);
+        }
+    };
+
+    // 질문 기반 추천 로드
+    const loadQuestionBasedRecommendation = async () => {
+        try {
+            const response = await authenticatedFetch(
+                `${API_BASE_URL}/api/recommendations/question-based`,
+                {
+                    method: 'GET',
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(`질문 기반 추천 조회 실패! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (data.isSuccess && data.result) {
+                setRecommendationData(prev => ({
+                    ...prev,
+                    questionBased: {
+                        book: {
+                            id: data.result.book.id,
+                            title: data.result.book.title,
+                            author: data.result.book.author,
+                            coverImage: data.result.book.coverImage,
+                            isbn: data.result.book.isbn,
+                            description: data.result.book.description
+                        },
+                        reason: data.result.recommendationKeyword,
+                        relatedQuestionId: data.result.relatedQuestionId
+                    }
+                }));
+            }
+        } catch (error) {
+            console.error('질문 기반 추천 로딩 실패:', error);
+            setRecommendationData(prev => ({ ...prev, questionBased: null }));
+        }
+    };
+
+    // 피키 유저 추천 로드
+    const loadPickyPickRecommendation = async () => {
+        try {
+            const response = await authenticatedFetch(
+                `${API_BASE_URL}/api/recommendations/picky-pick`,
+                {
+                    method: 'GET',
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(`피키 유저 추천 조회 실패! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (data.isSuccess && data.result) {
+                setRecommendationData(prev => ({
+                    ...prev,
+                    pickyPick: {
+                        book: {
+                            id: data.result.id,
+                            title: data.result.title,
+                            author: data.result.author,
+                            coverImage: data.result.coverImage,
+                            isbn: data.result.isbn,
+                            description: data.result.description
+                        }
+                    }
+                }));
+            }
+        } catch (error) {
+            console.error('피키 유저 추천 로딩 실패:', error);
+            setRecommendationData(prev => ({ ...prev, pickyPick: null }));
         }
     };
 
@@ -100,11 +151,31 @@ const Recommendation = ({ navigation }) => {
         navigation.goBack();
     };
 
+    // 책 상세 페이지로 이동
     const handleBookPress = (book) => {
+        if (!book || !book.isbn) {
+            console.error('책 정보가 없습니다:', book);
+            return;
+        }
+
         navigation.navigate("BookDetail", {
-            bookId: book.id,
-            bookData: book,
+            isbn: book.isbn,
+            bookData: {
+                isbn: book.isbn,
+                title: book.title,
+                authors: book.author ? [book.author] : [],
+                author: book.author,
+                coverImage: book.coverImage,
+                description: book.description
+            }
         });
+    };
+
+    // 텍스트를 50자로 제한하고 생략 처리
+    const truncateText = (text, maxLength = 50) => {
+        if (!text) return '';
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength) + '...';
     };
 
     const renderBookCard = (bookData) => {
@@ -124,7 +195,9 @@ const Recommendation = ({ navigation }) => {
                 <View style={styles.bookInfo}>
                     <Text style={styles.bookTitle}>{bookData.book.title}</Text>
                     <Text style={styles.bookAuthor}>{bookData.book.author}</Text>
-                    <Text style={styles.bookDescription}>{bookData.book.description}</Text>
+                    <Text style={styles.bookDescription}>
+                        {truncateText(bookData.book.description, 50)}
+                    </Text>
                 </View>
             </TouchableOpacity>
         );
@@ -151,7 +224,8 @@ const Recommendation = ({ navigation }) => {
         );
     }
 
-    if (!recommendationData) {
+    if (!recommendationData || 
+        (!recommendationData.questionBased && !recommendationData.pickyPick)) {
         return (
             <SafeAreaView style={styles.container}>
                 <StatusBar barStyle="dark-content" backgroundColor="#fff" />
@@ -213,37 +287,34 @@ const Recommendation = ({ navigation }) => {
                     )}
 
                     {/* 답변 내용 기반 섹션 */}
-                    {recommendationData.answerBased && (
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <View style={styles.sectionQuestionContainer}>
+                                <View style={styles.highlightTag}>
+                                    <Ionicons name="newspaper-outline" size={16} color="#666666" style={{marginRight: 4}} />
+                                    <Text style={styles.highlightText}>{dummyAnswerBased.reason}</Text>
+                                </View>
+                                <Text style={styles.normalText}> 에서 가져왔어요!</Text>
+                            </View>
+                            <Text style={styles.sectionTitle}>답변 내용 기반</Text>
+                        </View>
+                        {renderBookCard({ book: dummyAnswerBased.book })}
+                    </View>
+
+                    {/* 피키 유저들이 선택한 책 섹션 */}
+                    {recommendationData.pickyPick && (
                         <View style={styles.section}>
                             <View style={styles.sectionHeader}>
                                 <View style={styles.sectionQuestionContainer}>
                                     <View style={styles.highlightTag}>
-                                        <Ionicons name="newspaper-outline" size={16} color="#666666" style={{marginRight: 4}} />
-                                        <Text style={styles.highlightText}>{recommendationData.answerBased.reason}</Text>
+                                        <Ionicons name="people-outline" size={16} color="#666666" style={{marginRight: 4}} />
+                                        <Text style={styles.highlightText}>피키 유저들</Text>
                                     </View>
-                                    <Text style={styles.normalText}> 에서 가져왔어요!</Text>
+                                    <Text style={styles.normalText}> 이 선택한 책이에요!</Text>
                                 </View>
-                                <Text style={styles.sectionTitle}>답변 내용 기반</Text>
+                                <Text style={styles.sectionTitle}>피키 pick!</Text>
                             </View>
-                            {renderBookCard(recommendationData.answerBased)}
-                        </View>
-                    )}
-
-                    {/* 자주 언급한 키워드 섹션 */}
-                    {recommendationData.keywordBased && (
-                        <View style={styles.section}>
-                            <View style={styles.sectionHeader}>
-                                <View style={styles.sectionQuestionContainer}>
-                                    {recommendationData.keywordBased.keywords.map((keyword, index) => (
-                                        <View key={index} style={styles.highlightTag}>
-                                            <Text style={styles.highlightText}># {keyword}</Text>
-                                        </View>
-                                    ))}
-                                    <Text style={styles.normalText}> 에 주목했어요!</Text>
-                                </View>
-                                <Text style={styles.sectionTitle}>자주 언급한 키워드</Text>
-                            </View>
-                            {renderBookCard(recommendationData.keywordBased)}
+                            {renderBookCard(recommendationData.pickyPick)}
                         </View>
                     )}
                 </View>
