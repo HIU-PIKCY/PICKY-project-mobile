@@ -252,13 +252,13 @@ const styles = StyleSheet.create({
     transform: [{ translateX: -50 }, { translateY: -50 }],
   },
   secondKeyword: {
-    left: '75%',
+    left: '80%',
     top: '50%',
     transform: [{ translateX: -50 }, { translateY: -50 }],
   },
   thirdKeyword: {
     left: '55%',
-    top: '75%',
+    top: '80%',
     transform: [{ translateX: -50 }, { translateY: -50 }],
   },
   keywordText: {
