@@ -60,17 +60,36 @@ const MainScreen = () => {
     }
   };
 
-  // 사용자 데이터 로드
+  // 사용자 데이터 로드 (API 연동)
   const loadUserData = async () => {
     try {
-      // TODO: 실제 사용자 대시보드 API 연동 필요
-      setUserData({
-        name: "키피럽",
-        totalBooks: 12,
-        totalQA: 24
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/members/mymenu`, {
+        method: 'GET',
       });
+
+      if (!response.ok) {
+        throw new Error(`사용자 정보 조회 실패! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.isSuccess && data.result) {
+        const { user, stats } = data.result;
+
+        setUserData({
+          name: user.nickname || user.name || "사용자",
+          totalBooks: stats.totalBooks || 0,
+          totalQA: (stats.questions || 0) + (stats.answers || 0)  // 질문 + 답변 합계
+        });
+      }
     } catch (error) {
       console.error('사용자 데이터 로딩 실패:', error);
+      // 에러 시 기본값 설정
+      setUserData({
+        name: "사용자",
+        totalBooks: 0,
+        totalQA: 0
+      });
     }
   };
 
@@ -86,7 +105,7 @@ const MainScreen = () => {
       }
 
       const data = await response.json();
-      
+
       if (data.isSuccess && data.result) {
         const result = data.result;
         setHotTopic({
@@ -104,7 +123,7 @@ const MainScreen = () => {
             coverImage: result.bookCover
           }
         });
-        
+
         // 주차 정보 저장 (키워드 섹션에서 사용)
         if (result.weekInfo) {
           setWeekInfo(result.weekInfo);
@@ -127,7 +146,7 @@ const MainScreen = () => {
       }
 
       const data = await response.json();
-      
+
       if (data.isSuccess && data.result && data.result.keywords) {
         setWeeklyKeywords(data.result.keywords.map(item => ({
           text: item.keyword,
@@ -156,18 +175,19 @@ const MainScreen = () => {
       }
 
       const data = await response.json();
-      
+
       if (data.isSuccess && data.result && data.result.books) {
-        // 최대 5권까지만 표시
+        // 최대 5권까지만 표시, ISBN 정보 포함
         const books = data.result.books.slice(0, 5).map(book => ({
           id: book.bookId,
+          isbn: book.isbn,
           title: book.bookTitle,
           author: book.bookAuthor,
           coverImage: book.bookCover
         }));
-        
+
         setMostQuestionedBooks(books);
-        
+
         // weekInfo가 아직 없다면 여기서 설정
         if (!weekInfo && data.result.weekInfo) {
           setWeekInfo(data.result.weekInfo);
@@ -226,9 +246,28 @@ const MainScreen = () => {
 
   // 최다 질문 도서 클릭 시 책 상세로 이동
   const handleMostQuestionedBookPress = (book) => {
+    if (!book) {
+      console.error('책 정보가 없습니다');
+      return;
+    }
+
+    // ISBN이 있으면 ISBN으로, 없으면 bookId로 네비게이션
+    const identifier = book.isbn || book.id;
+
+    if (!identifier) {
+      console.error('책 식별자(ISBN 또는 ID)가 없습니다:', book);
+      return;
+    }
+
     navigation.navigate("BookDetail", {
-      bookId: book.id,
-      bookData: book,
+      isbn: book.isbn || book.id,
+      bookData: {
+        isbn: book.isbn,
+        title: book.title,
+        authors: book.author ? [book.author] : [],
+        author: book.author,
+        coverImage: book.coverImage
+      }
     });
   };
 
@@ -266,8 +305,8 @@ const MainScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
-        style={styles.content} 
+      <ScrollView
+        style={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -281,7 +320,12 @@ const MainScreen = () => {
         {/* 상단 인사 및 통계 카드 */}
         {userData && (
           <View style={styles.combinedCard}>
-            <Text style={styles.infoText}>
+            <Text
+              style={styles.infoText}
+              adjustsFontSizeToFit={true}
+              numberOfLines={1}
+              minimumFontScale={0.7}
+            >
               {userData.name}님! 오늘도 <Text style={styles.highlightText}>피키</Text>와 함께 의견을 나눠봐요.
             </Text>
 
