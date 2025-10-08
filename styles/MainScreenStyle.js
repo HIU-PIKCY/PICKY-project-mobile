@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 40,
     paddingHorizontal: 20,
     paddingTop: 24,
-    paddingBottom: 32,
+    paddingBottom: 18,
     marginHorizontal: -20,
   },
   section: {

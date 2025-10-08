@@ -401,7 +401,7 @@ const MainScreen = () => {
 
           {/* 이번 주 키워드 섹션 */}
           {weeklyKeywords.length > 0 && (
-            <View style={styles.section}>
+            <View style={{ marginBottom: 5 }}>
               <Text style={styles.sectionSubtitle}>가장 많이 나온 키워드를 모았어요!</Text>
               <Text style={styles.sectionTitle}>이번 주 키워드</Text>
               <View style={{ position: 'relative' }}>
@@ -437,7 +437,6 @@ const MainScreen = () => {
                       <Text style={styles.keywordText}># {weeklyKeywords[2].text}</Text>
                     </View>
                   )}
-                  <Text style={styles.keywordStats}>* {weekInfo} 기준</Text>
                 </View>
               </View>
             </View>
@@ -472,6 +471,7 @@ const MainScreen = () => {
             </View>
           )}
         </View>
+        <Text style={styles.keywordStats}>• {weekInfo} 기준</Text>
       </ScrollView>
     </SafeAreaView>
   );
