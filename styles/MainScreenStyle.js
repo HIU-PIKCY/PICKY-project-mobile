@@ -44,17 +44,13 @@ const styles = StyleSheet.create({
   combinedCard: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 30,
-    paddingTop: 25,
+    paddingTop: 20,
     paddingBottom: 20,
-    borderRadius: 18,
-    borderWidth: 3,
-    borderColor: '#F3FCF9',
+    borderRadius: 20,
+    borderWidth: 1.3,
+    borderColor: '#90D1BE',
     marginTop: 25,
     marginBottom: 30,
-    shadowColor: '#90D1BE',
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
     elevation: 5,
   },
   infoText: {
@@ -76,11 +72,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  statItem: { 
-    marginHorizontal: 20 
+  statItem: {
+    marginHorizontal: 20
   },
   statsText: {
-    fontSize: 17,
+    fontSize: 16,
     fontFamily: 'SUIT-Medium',
     fontWeight: '500',
     color: '#666',
@@ -104,8 +100,8 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     marginHorizontal: -20,
   },
-  section: { 
-    marginBottom: 30 
+  section: {
+    marginBottom: 30
   },
   sectionSubtitle: {
     fontSize: 16,
@@ -146,13 +142,13 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 8,
   },
-  bookImage: { 
-    width: '100%', 
-    height: '100%' 
+  bookImage: {
+    width: '100%',
+    height: '100%'
   },
-  bookInfoUnderImage: { 
-    alignItems: 'center', 
-    width: 90 
+  bookInfoUnderImage: {
+    alignItems: 'center',
+    width: 90
   },
   bookTitleUnderImage: {
     fontSize: 14,
@@ -170,9 +166,9 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     width: '100%',
   },
-  topicInfo: { 
-    flex: 1, 
-    justifyContent: 'center' 
+  topicInfo: {
+    flex: 1,
+    justifyContent: 'center'
   },
   topicTitle: {
     fontFamily: 'SUIT-SemiBold',
@@ -191,10 +187,10 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginBottom: 8,
   },
-  aiSummaryText: { 
-    fontSize: 12, 
-    color: '#FFF', 
-    fontWeight: '500' 
+  aiSummaryText: {
+    fontSize: 12,
+    color: '#FFF',
+    fontWeight: '500'
   },
   topicSummary: {
     fontFamily: 'SUIT-Medium',
@@ -219,24 +215,24 @@ const styles = StyleSheet.create({
     marginRight: 6,
     marginBottom: 2,
   },
-  tagText: { 
-    fontSize: 13, 
-    color: '#666666', 
-    fontWeight: '400' 
+  tagText: {
+    fontSize: 13,
+    color: '#666666',
+    fontWeight: '400'
   },
-  engagement: { 
-    flexDirection: 'row', 
-    alignItems: 'center' 
+  engagement: {
+    flexDirection: 'row',
+    alignItems: 'center'
   },
-  engagementItem: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginRight: 16 
+  engagementItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16
   },
-  engagementText: { 
-    fontSize: 14, 
-    color: '#666', 
-    marginLeft: 4 
+  engagementText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 4
   },
   keywordsContainer: {
     position: 'relative',

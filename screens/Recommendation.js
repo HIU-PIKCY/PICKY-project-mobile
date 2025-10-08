@@ -171,11 +171,11 @@ const Recommendation = ({ navigation }) => {
         });
     };
 
-    // 텍스트를 50자로 제한하고 생략 처리
-    const truncateText = (text, maxLength = 50) => {
+    // 텍스트를 55자로 제한하고 생략 처리
+    const truncateText = (text, maxLength = 55) => {
         if (!text) return '';
         if (text.length <= maxLength) return text;
-        return text.substring(0, maxLength) + '...';
+        return text.substring(0, maxLength) + '···';
     };
 
     const renderBookCard = (bookData) => {
@@ -196,7 +196,7 @@ const Recommendation = ({ navigation }) => {
                     <Text style={styles.bookTitle}>{bookData.book.title}</Text>
                     <Text style={styles.bookAuthor}>{bookData.book.author}</Text>
                     <Text style={styles.bookDescription}>
-                        {truncateText(bookData.book.description, 50)}
+                        {truncateText(bookData.book.description, 55)}
                     </Text>
                 </View>
             </TouchableOpacity>
@@ -374,20 +374,13 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#FFFFFF',
-        height: 90,
+        height: 100,
         paddingHorizontal: 30,
-        borderRadius: 18,
-        borderWidth: 3,
-        borderColor: '#F3FCF9',
+        borderRadius: 20,
+        borderWidth: 1.3,
+        borderColor: '#90D1BE',
         marginTop: 25,
         marginBottom: 30,
-        shadowColor: '#90D1BE',
-        shadowOffset: {
-            width: 2,
-            height: 2,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
         elevation: 5,
     },
     infoIcon: {
