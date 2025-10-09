@@ -198,10 +198,26 @@ const MainScreen = () => {
   // 알림 확인
   const checkNotifications = async () => {
     try {
-      // TODO: 실제 알림 API 연동 필요
-      setHasNewNotifications(false);
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/notifications`, {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        throw new Error(`알림 확인 실패! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.isSuccess && data.result) {
+        // 읽지 않은 알림이 있는지 확인
+        const hasUnread = data.result.some(notification => !notification.isRead);
+        setHasNewNotifications(hasUnread);
+        
+        console.log('읽지 않은 알림:', hasUnread ? '있음' : '없음');
+      }
     } catch (error) {
       console.error('알림 확인 실패:', error);
+      setHasNewNotifications(false);
     }
   };
 
