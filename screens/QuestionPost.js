@@ -2,7 +2,6 @@ import React, { forwardRef, useState, useEffect } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   Dimensions,
   KeyboardAvoidingView,
@@ -12,12 +11,102 @@ import {
   Keyboard,
   Alert,
   ActivityIndicator,
+  Animated,
 } from "react-native";
 import { Modalize } from "react-native-modalize";
 import { useAuth } from "../AuthContext";
 import MintStar from "../assets/icons/MintStar.svg";
+import { Ionicons } from '@expo/vector-icons';
+import { questionPostStyle } from '../styles/QuestionPostStyle';
 
 const screenHeight = Dimensions.get("window").height;
+
+// AI 로딩 애니메이션 컴포넌트
+const AILoadingAnimation = () => {
+  const [pulseAnim] = useState(new Animated.Value(1));
+  const [sparkles] = useState([
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
+  ]);
+
+  useEffect(() => {
+    // 펄스 애니메이션
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.2,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // 반짝이는 효과
+    sparkles.forEach((anim, index) => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(index * 300),
+          Animated.timing(anim, {
+            toValue: 1,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+          Animated.timing(anim, {
+            toValue: 0,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    });
+  }, []);
+
+  return (
+    <View style={questionPostStyle.aiLoadingContainer}>
+      {/* 중앙 AI 아이콘 */}
+      <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+        <View style={questionPostStyle.aiIconCircle}>
+          <Ionicons name="sparkles" size={32} color="#90D1BE" />
+        </View>
+      </Animated.View>
+
+      {/* 주변 반짝이는 별들 */}
+      <Animated.View 
+        style={[
+          questionPostStyle.sparkle, 
+          questionPostStyle.sparkle1,
+          { opacity: sparkles[0] }
+        ]}
+      >
+        <Ionicons name="star" size={14} color="#90D1BE" />
+      </Animated.View>
+      <Animated.View 
+        style={[
+          questionPostStyle.sparkle, 
+          questionPostStyle.sparkle2,
+          { opacity: sparkles[1] }
+        ]}
+      >
+        <Ionicons name="star" size={10} color="#78C8B0" />
+      </Animated.View>
+      <Animated.View 
+        style={[
+          questionPostStyle.sparkle, 
+          questionPostStyle.sparkle3,
+          { opacity: sparkles[2] }
+        ]}
+      >
+        <Ionicons name="star" size={12} color="#A8DCC8" />
+      </Animated.View>
+    </View>
+  );
+};
 
 export const AIQuestionSheet = forwardRef((props, ref) => {
   const [selectedTag, setSelectedTag] = useState(null);
@@ -52,11 +141,11 @@ export const AIQuestionSheet = forwardRef((props, ref) => {
     return (
       <TouchableOpacity
         key={label}
-        style={[styles.tag, isSelected && styles.selectedTag]}
+        style={[questionPostStyle.tag, isSelected && questionPostStyle.selectedTag]}
         onPress={() => setSelectedTag(label)}
         disabled={isGenerating || generatedQuestion}
       >
-        <Text style={isSelected ? styles.selectedTagText : styles.tagText}>
+        <Text style={isSelected ? questionPostStyle.selectedTagText : questionPostStyle.tagText}>
           {label}
         </Text>
       </TouchableOpacity>
@@ -75,6 +164,7 @@ export const AIQuestionSheet = forwardRef((props, ref) => {
     }
 
     setIsGenerating(true);
+    const startTime = Date.now();
     
     try {
       console.log('AI 질문 생성 요청:', `${API_BASE_URL}/api/ai/generate-question`);
@@ -107,7 +197,15 @@ export const AIQuestionSheet = forwardRef((props, ref) => {
         }
       }
       
-      // AI 응답을 받아서 generatedQuestion state에 저장 (디비에 저장하지 않음)
+      // 최소 2초 로딩 보장
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = Math.max(0, 2000 - elapsedTime);
+      
+      if (remainingTime > 0) {
+        await new Promise(resolve => setTimeout(resolve, remainingTime));
+      }
+      
+      // AI 응답을 받아서 generatedQuestion state에 저장
       if (data && data.title && data.content) {
         setGeneratedQuestion({
           title: data.title,
@@ -120,6 +218,14 @@ export const AIQuestionSheet = forwardRef((props, ref) => {
         throw new Error('AI 질문 생성 응답 형식이 올바르지 않습니다.');
       }
     } catch (error) {
+      // 에러가 발생해도 최소 2초는 유지
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = Math.max(0, 2000 - elapsedTime);
+      
+      if (remainingTime > 0) {
+        await new Promise(resolve => setTimeout(resolve, remainingTime));
+      }
+      
       console.error('AI 질문 생성 실패:', error);
       Alert.alert('오류', 'AI 질문 생성 중 오류가 발생했습니다.');
     } finally {
@@ -192,8 +298,8 @@ export const AIQuestionSheet = forwardRef((props, ref) => {
       ref={ref}
       snapPoint={screenHeight * 0.33}
       modalHeight={screenHeight * 0.9}
-      handleStyle={styles.handleExpanded}
-      modalStyle={styles.modal}
+      handleStyle={questionPostStyle.handleExpanded}
+      modalStyle={questionPostStyle.modal}
       withHandle
       panGestureEnabled={true}
       onPositionChange={(pos) => setIsExpanded(pos === "top")}
@@ -214,37 +320,37 @@ export const AIQuestionSheet = forwardRef((props, ref) => {
             paddingBottom: 100,
           }}
         >
-          <View style={styles.handleSpacer12} />
-          <View style={styles.handle} />
-          <View style={styles.headerSpacer12} />
-          <View style={styles.sheetHeaderExpanded}>
-            <Text style={styles.sheetTitle}>AI 질문 생성</Text>
+          <View style={questionPostStyle.handleSpacer12} />
+          <View style={questionPostStyle.handle} />
+          <View style={questionPostStyle.headerSpacer12} />
+          <View style={questionPostStyle.sheetHeaderExpanded}>
+            <Text style={questionPostStyle.sheetTitle}>AI 질문 생성</Text>
           </View>
 
-          <View style={styles.dividerMoreSpace} />
+          <View style={questionPostStyle.dividerMoreSpace} />
 
           {!generatedQuestion && !isGenerating && (
             <>
-              <View style={styles.tagSectionWrapper}>
-                <View style={styles.tagRowSpaced}>
+              <View style={questionPostStyle.tagSectionWrapper}>
+                <View style={questionPostStyle.tagRowSpaced}>
                   {renderTag(tags[0])}
                   {renderTag(tags[1])}
                 </View>
-                <View style={styles.tagRowSpaced}>
+                <View style={questionPostStyle.tagRowSpaced}>
                   {renderTag(tags[2])}
                   {renderTag(tags[3])}
                 </View>
               </View>
 
-              <View style={styles.dividerMoreSpaceLoweredExact} />
+              <View style={questionPostStyle.dividerMoreSpaceLoweredExact} />
 
-              <View style={styles.bottomRowLiftedFinalAdjustedExact}>
-                <View style={styles.pageInputGroup}>
-                  <Text style={styles.pageLabel}>페이지</Text>
+              <View style={questionPostStyle.bottomRowLiftedFinalAdjustedExact}>
+                <View style={questionPostStyle.pageInputGroup}>
+                  <Text style={questionPostStyle.pageLabel}>페이지</Text>
                   <TextInput
                     style={[
-                      styles.pageInputBox,
-                      styles.pageInputText,
+                      questionPostStyle.pageInputBox,
+                      questionPostStyle.pageInputText,
                       { paddingVertical: 2, textAlign: "center" },
                     ]}
                     keyboardType="numeric"
@@ -254,63 +360,63 @@ export const AIQuestionSheet = forwardRef((props, ref) => {
                   />
                 </View>
                 <TouchableOpacity
-                  style={[styles.aiSubmitButton]}
+                  style={[questionPostStyle.aiSubmitButton]}
                   onPress={handleAISubmit}
                   disabled={!selectedTag}
                 >
                   <MintStar />
-                  <Text style={styles.aiSubmitButtonText}>AI 질문 생성</Text>
+                  <Text style={questionPostStyle.aiSubmitButtonText}>AI 질문 생성</Text>
                 </TouchableOpacity>
               </View>
             </>
           )}
 
           {isGenerating && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#90D1BE" />
-              <Text style={styles.loadingText}>AI가 질문을 생성하고 있습니다...</Text>
+            <View style={questionPostStyle.loadingContainer}>
+              <AILoadingAnimation />
+              <Text style={questionPostStyle.loadingText}>AI가 질문을 생성하는 중이에요···</Text>
             </View>
           )}
 
           {generatedQuestion && !isGenerating && (
             <>
-              <View style={styles.questionPreviewWrapper}>
-                <View style={styles.questionPreview}>
-                  <View style={styles.questionTitleRow}>
-                    <Text style={styles.previewLabel}>제목</Text>
-                    <Text style={[styles.previewTitle, { flex: 1 }]}>
+              <View style={questionPostStyle.questionPreviewWrapper}>
+                <View style={questionPostStyle.questionPreview}>
+                  <View style={questionPostStyle.questionTitleRow}>
+                    <Text style={questionPostStyle.previewLabel}>제목</Text>
+                    <Text style={[questionPostStyle.previewTitle, { flex: 1 }]}>
                       {generatedQuestion.title}
                     </Text>
                   </View>
-                  <Text style={styles.previewBody}>
+                  <Text style={questionPostStyle.previewBody}>
                     {generatedQuestion.content}
                   </Text>
                 </View>
               </View>
 
-              <View style={styles.dividerMoreSpaceLoweredExact} />
+              <View style={questionPostStyle.dividerMoreSpaceLoweredExact} />
 
-              <View style={styles.bottomRowLiftedFinalAdjustedExact}>
-                <View style={styles.pageInputGroup}>
-                  <Text style={styles.pageLabel}>페이지</Text>
-                  <View style={[styles.pageInputBox, { justifyContent: 'center' }]}>
-                    <Text style={styles.pageInputText}>
+              <View style={questionPostStyle.bottomRowLiftedFinalAdjustedExact}>
+                <View style={questionPostStyle.pageInputGroup}>
+                  <Text style={questionPostStyle.pageLabel}>페이지</Text>
+                  <View style={[questionPostStyle.pageInputBox, { justifyContent: 'center' }]}>
+                    <Text style={questionPostStyle.pageInputText}>
                       {generatedQuestion.page || "-"}
                     </Text>
                   </View>
                 </View>
-                <View style={styles.generatedButtonsContainer}>
+                <View style={questionPostStyle.generatedButtonsContainer}>
                   <TouchableOpacity
-                    style={styles.cancelButton}
+                    style={questionPostStyle.cancelButton}
                     onPress={handleCancel}
                     disabled={isSubmittingGenerated}
                   >
-                    <Text style={styles.cancelButtonText}>취소</Text>
+                    <Text style={questionPostStyle.cancelButtonText}>취소</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[
-                      styles.submitButton,
-                      isSubmittingGenerated && styles.submitButtonDisabled
+                      questionPostStyle.submitButton,
+                      isSubmittingGenerated && questionPostStyle.submitButtonDisabled
                     ]}
                     onPress={handleGeneratedQuestionSubmit}
                     disabled={isSubmittingGenerated}
@@ -318,7 +424,7 @@ export const AIQuestionSheet = forwardRef((props, ref) => {
                     {isSubmittingGenerated ? (
                       <ActivityIndicator size="small" color="#4B4B4B" />
                     ) : (
-                      <Text style={styles.submitButtonText}>질문 등록</Text>
+                      <Text style={questionPostStyle.submitButtonText}>질문 등록</Text>
                     )}
                   </TouchableOpacity>
                 </View>
@@ -326,7 +432,7 @@ export const AIQuestionSheet = forwardRef((props, ref) => {
             </>
           )}
 
-          <View style={styles.bottomSpacer12} />
+          <View style={questionPostStyle.bottomSpacer12} />
         </ScrollView>
       </KeyboardAvoidingView>
     </Modalize>
@@ -431,8 +537,8 @@ export const QuestionWriteSheet = forwardRef(({ onSubmit, bookId }, ref) => {
       ref={ref}
       snapPoint={screenHeight * 0.33}
       modalHeight={screenHeight * 0.9}
-      handleStyle={styles.handleExpanded}
-      modalStyle={styles.modal}
+      handleStyle={questionPostStyle.handleExpanded}
+      modalStyle={questionPostStyle.modal}
       withHandle
       onPositionChange={(pos) => setIsExpanded(pos === "top")}
       onClose={handleModalClose}
@@ -452,21 +558,21 @@ export const QuestionWriteSheet = forwardRef(({ onSubmit, bookId }, ref) => {
             paddingBottom: 100,
           }}
         >
-          <View style={styles.handleSpacer12} />
-          <View style={styles.handle} />
-          <View style={styles.headerSpacer12} />
-          <View style={styles.sheetHeaderExpanded}>
-            <Text style={styles.sheetTitle}>질문 작성</Text>
+          <View style={questionPostStyle.handleSpacer12} />
+          <View style={questionPostStyle.handle} />
+          <View style={questionPostStyle.headerSpacer12} />
+          <View style={questionPostStyle.sheetHeaderExpanded}>
+            <Text style={questionPostStyle.sheetTitle}>질문 작성</Text>
           </View>
 
-          <View style={styles.dividerMoreSpace} />
+          <View style={questionPostStyle.dividerMoreSpace} />
 
-          <View style={styles.questionPreviewWrapper}>
-            <View style={styles.questionPreview}>
-              <View style={styles.questionTitleRow}>
-                <Text style={styles.previewLabel}>제목</Text>
+          <View style={questionPostStyle.questionPreviewWrapper}>
+            <View style={questionPostStyle.questionPreview}>
+              <View style={questionPostStyle.questionTitleRow}>
+                <Text style={questionPostStyle.previewLabel}>제목</Text>
                 <TextInput
-                  style={[styles.previewTitle, { flex: 1, padding: 4 }]}
+                  style={[questionPostStyle.previewTitle, { flex: 1, padding: 4 }]}
                   value={title}
                   onChangeText={setTitle}
                   editable={isExpanded && !isSubmitting}
@@ -476,7 +582,7 @@ export const QuestionWriteSheet = forwardRef(({ onSubmit, bookId }, ref) => {
               </View>
               <TextInput
                 style={[
-                  styles.previewBody,
+                  questionPostStyle.previewBody,
                   { textAlignVertical: "top", height: 50 },
                 ]}
                 value={body}
@@ -489,15 +595,15 @@ export const QuestionWriteSheet = forwardRef(({ onSubmit, bookId }, ref) => {
             </View>
           </View>
 
-          <View style={styles.dividerMoreSpaceLoweredExact} />
+          <View style={questionPostStyle.dividerMoreSpaceLoweredExact} />
 
-          <View style={styles.bottomRowLiftedFinalAdjustedExact}>
-            <View style={styles.pageInputGroup}>
-              <Text style={styles.pageLabel}>페이지</Text>
+          <View style={questionPostStyle.bottomRowLiftedFinalAdjustedExact}>
+            <View style={questionPostStyle.pageInputGroup}>
+              <Text style={questionPostStyle.pageLabel}>페이지</Text>
               <TextInput
                 style={[
-                  styles.pageInputBox,
-                  styles.pageInputText,
+                  questionPostStyle.pageInputBox,
+                  questionPostStyle.pageInputText,
                   { paddingVertical: 2, textAlign: "center" },
                 ]}
                 keyboardType="numeric"
@@ -509,8 +615,8 @@ export const QuestionWriteSheet = forwardRef(({ onSubmit, bookId }, ref) => {
             </View>
             <TouchableOpacity
               style={[
-                styles.submitButton,
-                ((!title.trim() || !body.trim()) || isSubmitting) && styles.submitButtonDisabled,
+                questionPostStyle.submitButton,
+                ((!title.trim() || !body.trim()) || isSubmitting) && questionPostStyle.submitButtonDisabled,
               ]}
               onPress={handleSubmit}
               disabled={(!title.trim() || !body.trim()) || isSubmitting}
@@ -520,9 +626,9 @@ export const QuestionWriteSheet = forwardRef(({ onSubmit, bookId }, ref) => {
               ) : (
                 <Text
                   style={[
-                    styles.submitButtonText,
+                    questionPostStyle.submitButtonText,
                     (!title.trim() || !body.trim()) &&
-                      styles.submitButtonTextDisabled,
+                      questionPostStyle.submitButtonTextDisabled,
                   ]}
                 >
                   질문 등록
@@ -530,218 +636,9 @@ export const QuestionWriteSheet = forwardRef(({ onSubmit, bookId }, ref) => {
               )}
             </TouchableOpacity>
           </View>
-          <View style={styles.bottomSpacer12} />
+          <View style={questionPostStyle.bottomSpacer12} />
         </ScrollView>
       </KeyboardAvoidingView>
     </Modalize>
   );
-});
-
-const styles = StyleSheet.create({
-  modal: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-  },
-  handle: {
-    backgroundColor: "#B0B0B0",
-    height: 2,
-    width: 42,
-    alignSelf: "center",
-    borderRadius: 1,
-  },
-  handleExpanded: {
-    backgroundColor: "transparent",
-    height: 0,
-  },
-  handleSpacer12: { height: 12 },
-  headerSpacer12: { height: 12 },
-  sheetHeaderExpanded: {
-    paddingBottom: 12,
-    alignItems: "center",
-  },
-  sheetTitle: {
-    fontSize: 14,
-    fontFamily: "SUIT-SemiBold",
-    color: "#4B4B4B",
-  },
-  divider: {
-    height: 0.5,
-    backgroundColor: "#DBDBDB",
-  },
-  dividerMoreSpace: {
-    height: 0.5,
-    backgroundColor: "#DBDBDB",
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  dividerMoreSpaceLoweredExact: {
-    height: 0.5,
-    backgroundColor: "#DBDBDB",
-    marginTop: 8,
-    marginBottom: 15,
-  },
-  tagSectionWrapper: {
-    paddingTop: 17,
-    paddingBottom: 17,
-  },
-  tagRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 18,
-    marginTop: 0,
-    gap: 12,
-  },
-  tagRowSpaced: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 18,
-    marginTop: 16,
-    gap: 16,
-  },
-  tag: {
-    borderWidth: 1,
-    borderColor: "#90D1BE",
-    borderRadius: 4,
-    width: "48%",
-    height: 30,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  selectedTag: {
-    backgroundColor: "#90D1BE",
-  },
-  tagText: {
-    color: "#4B4B4B",
-    fontSize: 14,
-  },
-  selectedTagText: {
-    color: "#fff",
-    fontSize: 14,
-  },
-  loadingContainer: {
-    paddingVertical: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#666666',
-    fontFamily: 'SUIT-Medium',
-  },
-  bottomRowLiftedFinalAdjustedExact: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 18,
-    paddingTop: 0,
-    paddingBottom: 12,
-  },
-  pageInputGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  pageLabel: {
-    fontSize: 14,
-    color: "#666",
-    marginRight: 6,
-  },
-  pageInputBox: {
-    borderWidth: 0.5,
-    borderColor: "#DFDFDF",
-    borderRadius: 3,
-    width: 42,
-    height: 24,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  pageInputText: {
-    fontSize: 14,
-    color: "#4B4B4B",
-  },
-  aiSubmitButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 0.5,
-    borderColor: "#DFDFDF",
-    borderRadius: 3,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-  },
-  aiSubmitButtonText: {
-    color: "#4B4B4B",
-    marginLeft: 5,
-    fontSize: 14,
-  },
-  generatedButtonsContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  cancelButton: {
-    borderWidth: 0.5,
-    borderColor: "#DFDFDF",
-    borderRadius: 3,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-  },
-  cancelButtonText: {
-    fontSize: 14,
-    color: "#999999",
-  },
-  questionPreviewWrapper: {
-    paddingTop: 17,
-    paddingBottom: 17,
-  },
-  questionPreview: {
-    paddingHorizontal: 18,
-    gap: 17,
-  },
-  questionTitleRow: {
-    flexDirection: "row",
-    gap: 16,
-    alignItems: "center",
-  },
-  previewLabel: {
-    fontSize: 14,
-    fontFamily: "SUIT-SemiBold",
-    color: "#0D2525",
-  },
-  previewTitle: {
-    fontSize: 14,
-    fontFamily: "SUIT-SemiBold",
-    color: "#666666",
-  },
-  previewBody: {
-    fontSize: 13.5,
-    fontFamily: "SUIT-Medium",
-    color: "#666",
-    lineHeight: 17.5,
-    letterSpacing: -0.25,
-  },
-  submitButton: {
-    borderWidth: 0.5,
-    borderColor: "#DFDFDF",
-    borderRadius: 3,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-  },
-  submitButtonDisabled: {
-    backgroundColor: "#F5F5F5",
-    borderColor: "#E8E8E8",
-  },
-  submitButtonText: {
-    fontSize: 14,
-    color: "#4B4B4B",
-  },
-  submitButtonTextDisabled: {
-    color: "#CCCCCC",
-  },
-  bottomSpacer15: {
-    height: 15,
-  },
-  bottomSpacer12: {
-    height: 12,
-  },
 });

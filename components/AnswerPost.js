@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     View, 
     Text, 
@@ -6,7 +6,8 @@ import {
     TextInput, 
     ActivityIndicator, 
     Alert,
-    Keyboard
+    Keyboard,
+    Animated
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import MintStar from '../assets/icons/MintStar.svg';
@@ -47,10 +48,29 @@ const AnswerPost = ({
 
     const handleAIAnswerGenerate = async () => {
         setGeneratingAI(true);
+        const startTime = Date.now();
+        
         try {
             const aiContent = await onGenerateAI();
+            
+            // 최소 2초 로딩 보장
+            const elapsedTime = Date.now() - startTime;
+            const remainingTime = Math.max(0, 2000 - elapsedTime);
+            
+            if (remainingTime > 0) {
+                await new Promise(resolve => setTimeout(resolve, remainingTime));
+            }
+            
             setGeneratedAIAnswer(aiContent);
         } catch (error) {
+            // 에러가 발생해도 최소 2초는 유지
+            const elapsedTime = Date.now() - startTime;
+            const remainingTime = Math.max(0, 2000 - elapsedTime);
+            
+            if (remainingTime > 0) {
+                await new Promise(resolve => setTimeout(resolve, remainingTime));
+            }
+            
             Alert.alert('오류', 'AI 답변 생성 중 오류가 발생했습니다.');
         } finally {
             setGeneratingAI(false);
@@ -78,6 +98,93 @@ const AnswerPost = ({
         setGeneratedAIAnswer(null);
     };
 
+    // AI 생성 중 애니메이션 컴포넌트
+    const AILoadingAnimation = () => {
+        const [pulseAnim] = useState(new Animated.Value(1));
+        const [sparkles] = useState([
+            new Animated.Value(0),
+            new Animated.Value(0),
+            new Animated.Value(0),
+        ]);
+
+        useEffect(() => {
+            // 펄스 애니메이션
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(pulseAnim, {
+                        toValue: 1.2,
+                        duration: 1000,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(pulseAnim, {
+                        toValue: 1,
+                        duration: 1000,
+                        useNativeDriver: true,
+                    }),
+                ])
+            ).start();
+
+            // 반짝이는 효과
+            sparkles.forEach((anim, index) => {
+                Animated.loop(
+                    Animated.sequence([
+                        Animated.delay(index * 300),
+                        Animated.timing(anim, {
+                            toValue: 1,
+                            duration: 600,
+                            useNativeDriver: true,
+                        }),
+                        Animated.timing(anim, {
+                            toValue: 0,
+                            duration: 600,
+                            useNativeDriver: true,
+                        }),
+                    ])
+                ).start();
+            });
+        }, []);
+
+        return (
+            <View style={answerPostStyle.aiLoadingContainer}>
+                {/* 중앙 AI 아이콘 */}
+                <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+                    <View style={answerPostStyle.aiIconCircle}>
+                        <Ionicons name="sparkles" size={32} color="#90D1BE" />
+                    </View>
+                </Animated.View>
+
+                {/* 주변 반짝이는 별들 */}
+                <Animated.View 
+                    style={[
+                        answerPostStyle.sparkle, 
+                        answerPostStyle.sparkle1,
+                        { opacity: sparkles[0] }
+                    ]}
+                >
+                    <Ionicons name="star" size={14} color="#90D1BE" />
+                </Animated.View>
+                <Animated.View 
+                    style={[
+                        answerPostStyle.sparkle, 
+                        answerPostStyle.sparkle2,
+                        { opacity: sparkles[1] }
+                    ]}
+                >
+                    <Ionicons name="star" size={10} color="#78C8B0" />
+                </Animated.View>
+                <Animated.View 
+                    style={[
+                        answerPostStyle.sparkle, 
+                        answerPostStyle.sparkle3,
+                        { opacity: sparkles[2] }
+                    ]}
+                >
+                    <Ionicons name="star" size={12} color="#A8DCC8" />
+                </Animated.View>
+            </View>
+        );
+    };
+
     return (
         <View style={answerPostStyle.answerInputContainer}>
             {/* 답글 작성 모드 표시 */}
@@ -94,9 +201,9 @@ const AnswerPost = ({
             
             {generatingAI ? (
                 <View style={answerPostStyle.aiGeneratingContainer}>
-                    <ActivityIndicator size="large" color="#90D1BE" />
+                    <AILoadingAnimation />
                     <Text style={answerPostStyle.aiGeneratingText}>
-                        AI가 답변을 생성하고 있습니다...
+                        AI가 답변을 생성하는 중이에요···
                     </Text>
                 </View>
             ) : generatedAIAnswer ? (

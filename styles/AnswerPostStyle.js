@@ -102,6 +102,41 @@ export const answerPostStyle = StyleSheet.create({
         letterSpacing: -0.35,
         color: '#4B4B4B',
     },
+    // AI 로딩 애니메이션
+    aiLoadingContainer: {
+        width: 100,
+        height: 100,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 12,
+        position: 'relative',
+        alignSelf: 'center',
+    },
+    aiIconCircle: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: '#F3FCF9',
+        borderWidth: 2,
+        borderColor: '#90D1BE',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    sparkle: {
+        position: 'absolute',
+    },
+    sparkle1: {
+        top: 8,
+        right: 12,
+    },
+    sparkle2: {
+        bottom: 12,
+        left: 8,
+    },
+    sparkle3: {
+        top: 16,
+        left: 4,
+    },
     // AI 답변 생성 관련
     aiGeneratingContainer: {
         paddingVertical: 30,
@@ -109,10 +144,10 @@ export const answerPostStyle = StyleSheet.create({
         justifyContent: 'center',
     },
     aiGeneratingText: {
-        marginTop: 12,
+        marginTop: 8,
         fontSize: 16,
-        color: '#666666',
-        fontFamily: 'SUIT-Medium',
+        color: '#666',
+        fontFamily: 'SUIT-SemiBold',
     },
     aiAnswerPreviewContainer: {
         backgroundColor: '#FFFFFF',

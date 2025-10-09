@@ -10,6 +10,7 @@ import {
     Image,
     ActivityIndicator,
     RefreshControl,
+    Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -53,13 +54,31 @@ const Recommendation = ({ navigation }) => {
 
     const loadRecommendations = async () => {
         setLoading(true);
+        const startTime = Date.now();
+        
         try {
             await Promise.all([
                 loadQuestionBasedRecommendation(),
                 loadPickyPickRecommendation()
             ]);
+            
+            // 최소 2초 로딩 보장
+            const elapsedTime = Date.now() - startTime;
+            const remainingTime = Math.max(0, 2000 - elapsedTime);
+            
+            if (remainingTime > 0) {
+                await new Promise(resolve => setTimeout(resolve, remainingTime));
+            }
         } catch (error) {
             console.error('추천 데이터 로딩 실패:', error);
+            
+            // 에러가 발생해도 최소 2초는 유지
+            const elapsedTime = Date.now() - startTime;
+            const remainingTime = Math.max(0, 2000 - elapsedTime);
+            
+            if (remainingTime > 0) {
+                await new Promise(resolve => setTimeout(resolve, remainingTime));
+            }
         } finally {
             setLoading(false);
         }
@@ -218,14 +237,102 @@ const Recommendation = ({ navigation }) => {
         </View>
     );
 
+    // AI 생성 중 애니메이션 컴포넌트
+    const AILoadingAnimation = () => {
+        const [pulseAnim] = useState(new Animated.Value(1));
+        const [sparkles] = useState([
+            new Animated.Value(0),
+            new Animated.Value(0),
+            new Animated.Value(0),
+        ]);
+
+        useEffect(() => {
+            // 펄스 애니메이션
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(pulseAnim, {
+                        toValue: 1.2,
+                        duration: 1000,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(pulseAnim, {
+                        toValue: 1,
+                        duration: 1000,
+                        useNativeDriver: true,
+                    }),
+                ])
+            ).start();
+
+            // 반짝이는 효과
+            sparkles.forEach((anim, index) => {
+                Animated.loop(
+                    Animated.sequence([
+                        Animated.delay(index * 300),
+                        Animated.timing(anim, {
+                            toValue: 1,
+                            duration: 600,
+                            useNativeDriver: true,
+                        }),
+                        Animated.timing(anim, {
+                            toValue: 0,
+                            duration: 600,
+                            useNativeDriver: true,
+                        }),
+                    ])
+                ).start();
+            });
+        }, []);
+
+        return (
+            <View style={styles.aiLoadingContainer}>
+                {/* 중앙 AI 아이콘 */}
+                <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+                    <View style={styles.aiIconCircle}>
+                        <Ionicons name="sparkles" size={40} color="#90D1BE" />
+                    </View>
+                </Animated.View>
+
+                {/* 주변 반짝이는 별들 */}
+                <Animated.View 
+                    style={[
+                        styles.sparkle, 
+                        styles.sparkle1,
+                        { opacity: sparkles[0] }
+                    ]}
+                >
+                    <Ionicons name="star" size={16} color="#90D1BE" />
+                </Animated.View>
+                <Animated.View 
+                    style={[
+                        styles.sparkle, 
+                        styles.sparkle2,
+                        { opacity: sparkles[1] }
+                    ]}
+                >
+                    <Ionicons name="star" size={12} color="#78C8B0" />
+                </Animated.View>
+                <Animated.View 
+                    style={[
+                        styles.sparkle, 
+                        styles.sparkle3,
+                        { opacity: sparkles[2] }
+                    ]}
+                >
+                    <Ionicons name="star" size={14} color="#A8DCC8" />
+                </Animated.View>
+            </View>
+        );
+    };
+
     if (loading) {
         return (
             <SafeAreaView style={styles.container}>
                 <StatusBar barStyle="dark-content" backgroundColor="#fff" />
                 <CustomHeader title="추천 도서" onBackPress={handleGoBack} />
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#90D1BE" style={styles.loadingSpinner} />
-                    <Text style={styles.loadingText}>회원님에게 딱 맞는 추천 도서를 찾고 있어요...</Text>
+                    <AILoadingAnimation />
+                    <Text style={styles.loadingText}>회원님에게 딱 맞는 추천 도서를 찾고 있어요!</Text>
+                    <Text style={styles.loadingSubText}>피키가 취향을 분석하는 중이에요</Text>
                 </View>
             </SafeAreaView>
         );
@@ -348,18 +455,52 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    loadingLogo: {
-        marginBottom: 20,
+    aiLoadingContainer: {
+        width: 120,
+        height: 120,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 30,
+        position: 'relative',
     },
-    loadingSpinner: {
-        marginBottom: 20,
+    aiIconCircle: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: '#F3FCF9',
+        borderWidth: 2,
+        borderColor: '#90D1BE',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    sparkle: {
+        position: 'absolute',
+    },
+    sparkle1: {
+        top: 10,
+        right: 15,
+    },
+    sparkle2: {
+        bottom: 15,
+        left: 10,
+    },
+    sparkle3: {
+        top: 20,
+        left: 5,
     },
     loadingText: {
         fontSize: 16,
-        fontFamily: 'SUIT-Medium',
-        color: '#666666',
+        fontFamily: 'SUIT-SemiBold',
+        color: '#666',
         textAlign: 'center',
         lineHeight: 22,
+        marginBottom: 8,
+    },
+    loadingSubText: {
+        fontSize: 14,
+        fontFamily: 'SUIT-Medium',
+        color: '#90D1BE',
+        textAlign: 'center',
     },
     emptyContainer: {
         flex: 1,
