@@ -28,19 +28,6 @@ const Recommendation = ({ navigation }) => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
-    // 더미 데이터 - 답변 기반 추천
-    const dummyAnswerBased = {
-        book: {
-            id: 2,
-            title: '운수 좋은 날',
-            author: '현진건',
-            coverImage: 'https://contents.kyobobook.co.kr/sih/fit-in/400x0/pdt/9788973811755.jpg',
-            isbn: '9788973811755',
-            description: '한국 근대문학의 대표작으로 섬세한 묘사를 좋아하는 회원님께 추천'
-        },
-        reason: '어린 왕자'
-    };
-
     useEffect(() => {
         loadRecommendations();
     }, []);
@@ -59,6 +46,7 @@ const Recommendation = ({ navigation }) => {
         try {
             await Promise.all([
                 loadQuestionBasedRecommendation(),
+                loadAnswerBasedRecommendation(),
                 loadPickyPickRecommendation()
             ]);
             
@@ -120,6 +108,45 @@ const Recommendation = ({ navigation }) => {
         } catch (error) {
             console.error('질문 기반 추천 로딩 실패:', error);
             setRecommendationData(prev => ({ ...prev, questionBased: null }));
+        }
+    };
+
+    // 답변 기반 추천 로드
+    const loadAnswerBasedRecommendation = async () => {
+        try {
+            const response = await authenticatedFetch(
+                `${API_BASE_URL}/api/recommendations/answer-based`,
+                {
+                    method: 'GET',
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(`답변 기반 추천 조회 실패! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (data.isSuccess && data.result) {
+                setRecommendationData(prev => ({
+                    ...prev,
+                    answerBased: {
+                        book: {
+                            id: data.result.book.id,
+                            title: data.result.book.title,
+                            author: data.result.book.author,
+                            coverImage: data.result.book.coverImage,
+                            isbn: data.result.book.isbn,
+                            description: data.result.book.description
+                        },
+                        relatedAnswerId: data.result.relatedAnswerId,
+                        relatedAnswerBookTitle: data.result.relatedAnswerBookTitle
+                    }
+                }));
+            }
+        } catch (error) {
+            console.error('답변 기반 추천 로딩 실패:', error);
+            setRecommendationData(prev => ({ ...prev, answerBased: null }));
         }
     };
 
@@ -197,8 +224,8 @@ const Recommendation = ({ navigation }) => {
         return text.substring(0, maxLength) + '···';
     };
 
-    // 질문 제목이나 책 제목을 17자로 제한
-    const truncateTitle = (text, maxLength = 17) => {
+    // 질문 제목이나 책 제목을 15자로 제한
+    const truncateTitle = (text, maxLength = 15) => {
         if (!text) return '';
         if (text.length <= maxLength) return text;
         return text.substring(0, maxLength) + '···';
@@ -339,7 +366,7 @@ const Recommendation = ({ navigation }) => {
     }
 
     if (!recommendationData || 
-        (!recommendationData.questionBased && !recommendationData.pickyPick)) {
+        (!recommendationData.questionBased && !recommendationData.answerBased && !recommendationData.pickyPick)) {
         return (
             <SafeAreaView style={styles.container}>
                 <StatusBar barStyle="dark-content" backgroundColor="#fff" />
@@ -394,7 +421,7 @@ const Recommendation = ({ navigation }) => {
                                             "{truncateTitle(recommendationData.questionBased.relatedQuestionTitle)}"
                                         </Text>
                                     </View>
-                                    <Text style={styles.normalText}> 을 참고했어요!</Text>
+                                    <Text style={styles.normalText}>을 참고했어요!</Text>
                                 </View>
                                 <Text style={styles.sectionTitle}>질문 내용 기반</Text>
                             </View>
@@ -403,21 +430,23 @@ const Recommendation = ({ navigation }) => {
                     )}
 
                     {/* 답변 내용 기반 섹션 */}
-                    <View style={styles.section}>
-                        <View style={styles.sectionHeader}>
-                            <View style={styles.sectionQuestionContainer}>
-                                <View style={styles.highlightTag}>
-                                    <Ionicons name="newspaper-outline" size={16} color="#666666" style={{marginRight: 4}} />
-                                    <Text style={styles.highlightText}>
-                                        {truncateTitle(dummyAnswerBased.reason)}
-                                    </Text>
+                    {recommendationData.answerBased && (
+                        <View style={styles.section}>
+                            <View style={styles.sectionHeader}>
+                                <View style={styles.sectionQuestionContainer}>
+                                    <View style={styles.highlightTag}>
+                                        <Ionicons name="newspaper-outline" size={16} color="#666666" style={{marginRight: 4}} />
+                                        <Text style={styles.highlightText}>
+                                            {truncateTitle(recommendationData.answerBased.relatedAnswerBookTitle)}
+                                        </Text>
+                                    </View>
+                                    <Text style={styles.normalText}>에서 가져왔어요!</Text>
                                 </View>
-                                <Text style={styles.normalText}> 에서 가져왔어요!</Text>
+                                <Text style={styles.sectionTitle}>답변 내용 기반</Text>
                             </View>
-                            <Text style={styles.sectionTitle}>답변 내용 기반</Text>
+                            {renderBookCard(recommendationData.answerBased)}
                         </View>
-                        {renderBookCard({ book: dummyAnswerBased.book })}
-                    </View>
+                    )}
 
                     {/* 피키 유저들이 선택한 책 섹션 */}
                     {recommendationData.pickyPick && (
@@ -428,7 +457,7 @@ const Recommendation = ({ navigation }) => {
                                         <Ionicons name="people-outline" size={16} color="#666666" style={{marginRight: 4}} />
                                         <Text style={styles.highlightText}>피키 유저들</Text>
                                     </View>
-                                    <Text style={styles.normalText}> 이 선택한 책이에요!</Text>
+                                    <Text style={styles.normalText}>이 선택한 책이에요!</Text>
                                 </View>
                                 <Text style={styles.sectionTitle}>피키 pick!</Text>
                             </View>
