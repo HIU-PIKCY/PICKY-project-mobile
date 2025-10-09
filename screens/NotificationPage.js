@@ -13,6 +13,7 @@ import {
     Alert
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import CustomHeader from '../components/CustomHeader';
 import LogoSVG from "../assets/icons/logoIcon.svg";
 import { useAuth } from "../AuthContext";
@@ -163,20 +164,9 @@ const NotificationPage = ({ navigation }) => {
         }
     };
 
-    const getProfileImage = (notification) => {
-        // NEW_ANSWER, NEW_REPLY, QUESTION_LIKE는 프로필 이미지가 있을 수 있음
-        // VIEW_COUNT는 로고 표시
-        if (notification.notificationType === 'VIEW_COUNT') {
-            return null;
-        }
-        
-        // 백엔드에서 프로필 이미지를 제공하지 않으므로 기본 처리
-        // 추후 백엔드에서 프로필 이미지를 포함하도록 수정 필요
-        return null;
-    };
-
     const renderNotificationItem = (item) => {
-        const profileImage = getProfileImage(item);
+        const hasProfileImage = item.profileImg && item.profileImg.trim() !== '';
+        const showLogo = item.notificationType === 'VIEW_COUNT' || !hasProfileImage;
         
         return (
             <TouchableOpacity
@@ -192,14 +182,25 @@ const NotificationPage = ({ navigation }) => {
                 >
                     <View style={styles.notificationContent}>
                         <View style={styles.iconContainer}>
-                            {profileImage ? (
+                            {showLogo ? (
+                                <LogoSVG width={35} height={35} />
+                            ) : (
                                 <Image
-                                    source={{ uri: profileImage }}
+                                    source={{ uri: item.profileImg }}
                                     style={styles.profileImage}
                                     resizeMode="cover"
+                                    onError={(e) => {
+                                        console.log('프로필 이미지 로딩 실패:', item.profileImg);
+                                        // 이미지 로딩 실패 시 기본 아이콘 표시를 위해 상태 업데이트
+                                        setNotifications(prev =>
+                                            prev.map(notification =>
+                                                notification.id === item.id
+                                                    ? { ...notification, profileImg: null }
+                                                    : notification
+                                            )
+                                        );
+                                    }}
                                 />
-                            ) : (
-                                <LogoSVG width={35} height={35} />
                             )}
                         </View>
                         <View style={styles.messageContainer}>
@@ -219,6 +220,7 @@ const NotificationPage = ({ navigation }) => {
 
     const renderEmptyState = () => (
         <View style={styles.emptyContainer}>
+            <Ionicons name="notifications-outline" size={48} color="#CCCCCC" />
             <Text style={styles.emptyText}>알림이 없습니다</Text>
             <Text style={styles.emptySubText}>새로운 알림이 오면 여기에 표시됩니다.</Text>
         </View>
@@ -323,6 +325,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 16,
+        overflow: 'hidden',
     },
     profileImage: {
         width: 40,
