@@ -93,8 +93,8 @@ const Recommendation = ({ navigation }) => {
                             isbn: data.result.book.isbn,
                             description: data.result.book.description
                         },
-                        reason: data.result.recommendationKeyword,
-                        relatedQuestionId: data.result.relatedQuestionId
+                        relatedQuestionId: data.result.relatedQuestionId,
+                        relatedQuestionTitle: data.result.relatedQuestionTitle
                     }
                 }));
             }
@@ -171,8 +171,15 @@ const Recommendation = ({ navigation }) => {
         });
     };
 
-    // 텍스트를 55자로 제한하고 생략 처리
+    // 요약 텍스트를 55자로 제한하고 생략 처리
     const truncateText = (text, maxLength = 55) => {
+        if (!text) return '';
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength) + '···';
+    };
+
+    // 질문 제목이나 책 제목을 17자로 제한
+    const truncateTitle = (text, maxLength = 17) => {
         if (!text) return '';
         if (text.length <= maxLength) return text;
         return text.substring(0, maxLength) + '···';
@@ -276,7 +283,9 @@ const Recommendation = ({ navigation }) => {
                                 <View style={styles.sectionQuestionContainer}>
                                     <View style={styles.highlightTag}>
                                         <Ionicons name="bulb-outline" size={16} color="#666666" style={{marginRight: 4}} />
-                                        <Text style={styles.highlightText}>"{recommendationData.questionBased.reason}"</Text>
+                                        <Text style={styles.highlightText}>
+                                            "{truncateTitle(recommendationData.questionBased.relatedQuestionTitle)}"
+                                        </Text>
                                     </View>
                                     <Text style={styles.normalText}> 을 참고했어요!</Text>
                                 </View>
@@ -292,7 +301,9 @@ const Recommendation = ({ navigation }) => {
                             <View style={styles.sectionQuestionContainer}>
                                 <View style={styles.highlightTag}>
                                     <Ionicons name="newspaper-outline" size={16} color="#666666" style={{marginRight: 4}} />
-                                    <Text style={styles.highlightText}>{dummyAnswerBased.reason}</Text>
+                                    <Text style={styles.highlightText}>
+                                        {truncateTitle(dummyAnswerBased.reason)}
+                                    </Text>
                                 </View>
                                 <Text style={styles.normalText}> 에서 가져왔어요!</Text>
                             </View>
