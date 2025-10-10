@@ -1,14 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     SafeAreaView,
     Text,
     ScrollView,
     TouchableOpacity,
-    StyleSheet,
     StatusBar,
     Image,
-    ActivityIndicator,
     RefreshControl,
     Animated,
 } from 'react-native';
@@ -17,6 +15,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import LogoSVG from "../assets/icons/logoIcon.svg";
 import CustomHeader from '../components/CustomHeader';
 import { useAuth } from "../AuthContext";
+import { styles } from '../styles/RecommendationStyle';
 
 // 백엔드 서버 url
 const API_BASE_URL = "http://13.124.86.254";
@@ -27,20 +26,39 @@ const Recommendation = ({ navigation }) => {
     const [recommendationData, setRecommendationData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const skipNextFocus = useRef(false); // 다음 포커스를 스킵할지 여부
+    const isInitialMount = useRef(true); // 초기 마운트 여부
 
     useEffect(() => {
-        loadRecommendations();
+        // 초기 마운트 시 데이터 로드
+        loadRecommendations(true);
+        isInitialMount.current = false;
     }, []);
 
-    // 화면 포커스 시 추천 데이터 새로고침
+    // 화면 포커스 시 API 호출
     useFocusEffect(
         React.useCallback(() => {
-            loadRecommendations();
+            // 초기 마운트는 useEffect에서 처리하므로 스킵
+            if (isInitialMount.current) {
+                return;
+            }
+
+            // skipNextFocus가 true면 이번 포커스는 스킵 (북카드에서 돌아온 경우)
+            if (skipNextFocus.current) {
+                skipNextFocus.current = false;
+                return;
+            }
+            
+            // 네비게이션으로 재진입한 경우 API 호출
+            loadRecommendations(true);
         }, [])
     );
 
-    const loadRecommendations = async () => {
-        setLoading(true);
+    const loadRecommendations = async (showLoading = false) => {
+        if (showLoading) {
+            setLoading(true);
+        }
+        
         const startTime = Date.now();
         
         try {
@@ -50,25 +68,31 @@ const Recommendation = ({ navigation }) => {
                 loadPickyPickRecommendation()
             ]);
             
-            // 최소 2초 로딩 보장
-            const elapsedTime = Date.now() - startTime;
-            const remainingTime = Math.max(0, 2000 - elapsedTime);
-            
-            if (remainingTime > 0) {
-                await new Promise(resolve => setTimeout(resolve, remainingTime));
+            // 로딩을 표시하는 경우에만 최소 2초 보장
+            if (showLoading) {
+                const elapsedTime = Date.now() - startTime;
+                const remainingTime = Math.max(0, 2000 - elapsedTime);
+                
+                if (remainingTime > 0) {
+                    await new Promise(resolve => setTimeout(resolve, remainingTime));
+                }
             }
         } catch (error) {
             console.error('추천 데이터 로딩 실패:', error);
             
-            // 에러가 발생해도 최소 2초는 유지
-            const elapsedTime = Date.now() - startTime;
-            const remainingTime = Math.max(0, 2000 - elapsedTime);
-            
-            if (remainingTime > 0) {
-                await new Promise(resolve => setTimeout(resolve, remainingTime));
+            // 에러가 발생해도 로딩 표시 중이면 최소 2초는 유지
+            if (showLoading) {
+                const elapsedTime = Date.now() - startTime;
+                const remainingTime = Math.max(0, 2000 - elapsedTime);
+                
+                if (remainingTime > 0) {
+                    await new Promise(resolve => setTimeout(resolve, remainingTime));
+                }
             }
         } finally {
-            setLoading(false);
+            if (showLoading) {
+                setLoading(false);
+            }
         }
     };
 
@@ -189,7 +213,8 @@ const Recommendation = ({ navigation }) => {
 
     const onRefresh = async () => {
         setRefreshing(true);
-        await loadRecommendations();
+        setLoading(true); // 새로고침 시에도 로딩 애니메이션 표시
+        await loadRecommendations(true); // 로딩 표시하며 데이터 갱신
         setRefreshing(false);
     };
 
@@ -203,6 +228,9 @@ const Recommendation = ({ navigation }) => {
             console.error('책 정보가 없습니다:', book);
             return;
         }
+
+        // 북카드 클릭 시 다음 포커스를 스킵하도록 설정
+        skipNextFocus.current = true;
 
         navigation.navigate("BookDetail", {
             isbn: book.isbn,
@@ -469,233 +497,5 @@ const Recommendation = ({ navigation }) => {
         </SafeAreaView>
     );
 };
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#FFFFFF',
-    },
-    content: {
-        flex: 1,
-        paddingHorizontal: 20,
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    aiLoadingContainer: {
-        width: 120,
-        height: 120,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 30,
-        position: 'relative',
-    },
-    aiIconCircle: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: '#F3FCF9',
-        borderWidth: 2,
-        borderColor: '#90D1BE',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    sparkle: {
-        position: 'absolute',
-    },
-    sparkle1: {
-        top: 10,
-        right: 15,
-    },
-    sparkle2: {
-        bottom: 15,
-        left: 10,
-    },
-    sparkle3: {
-        top: 20,
-        left: 5,
-    },
-    loadingText: {
-        fontSize: 16,
-        fontFamily: 'SUIT-SemiBold',
-        color: '#666',
-        textAlign: 'center',
-        lineHeight: 22,
-        marginBottom: 8,
-    },
-    loadingSubText: {
-        fontSize: 14,
-        fontFamily: 'SUIT-Medium',
-        color: '#90D1BE',
-        textAlign: 'center',
-    },
-    emptyContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingTop: 100,
-    },
-    emptyText: {
-        fontSize: 18,
-        fontFamily: 'SUIT-SemiBold',
-        color: '#999999',
-        marginTop: 16,
-        textAlign: 'center',
-    },
-    emptySubText: {
-        fontSize: 14,
-        fontFamily: 'SUIT-Regular',
-        color: '#CCCCCC',
-        marginTop: 8,
-        textAlign: 'center',
-    },
-    infoCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FFFFFF',
-        height: 100,
-        paddingHorizontal: 30,
-        borderRadius: 20,
-        borderWidth: 1.3,
-        borderColor: '#90D1BE',
-        marginTop: 25,
-        marginBottom: 30,
-        elevation: 5,
-    },
-    infoIcon: {
-        marginRight: 15,
-    },
-    infoText: {
-        flex: 1,
-        fontSize: 16,
-        fontFamily: 'SUIT-Medium',
-        fontWeight: '500',
-        color: '#666',
-        letterSpacing: -0.4,
-        lineHeight: 20,
-    },
-    roundedContainer: {
-        backgroundColor: '#F3FCF9',
-        borderTopLeftRadius: 40,
-        borderTopRightRadius: 40,
-        paddingHorizontal: 20,
-        paddingTop: 24,
-        paddingBottom: 32,
-        marginHorizontal: -20,
-    },
-    section: {
-        marginBottom: 32,
-    },
-    sectionHeader: {
-        marginBottom: 16,
-    },
-    questionBadge: {
-        backgroundColor: '#D8F3F1',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 20,
-        alignSelf: 'flex-start',
-        marginBottom: 8,
-    },
-    sectionQuestionContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        marginBottom: 4,
-    },
-    sectionQuestion: {
-        fontSize: 13,
-        fontWeight: '500',
-        color: '#666666',
-    },
-    highlightTag: {
-        backgroundColor: '#90D1BE40',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 6,
-        marginRight: 4,
-        marginBottom: 2,
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    highlightText: {
-        fontFamily: 'SUIT-SemiBold',
-        fontSize: 16,
-        fontWeight: '600',
-        letterSpacing: -0.4,
-        color: '#666666',
-    },
-    normalText: {
-        fontFamily: 'SUIT-SemiBold',
-        fontSize: 16,
-        fontWeight: '500',
-        letterSpacing: -0.4,
-        color: '#666666',
-    },
-    sectionTitle: {
-        fontFamily: 'SUIT-SemiBold',
-        fontSize: 20,
-        fontWeight: '600',
-        letterSpacing: -0.45,
-        color: '#0D2525',
-    },
-    bookCard: {
-        flexDirection: 'row',
-        backgroundColor: '#FFFFFF',
-        padding: 20,
-        borderRadius: 16,
-        shadowColor: '#90D1BE',
-        shadowOffset: {
-            width: 2,
-            height: 2,
-        },
-        shadowOpacity: 0.5,
-        shadowRadius: 4,
-        elevation: 4,
-    },
-    bookImagePlaceholder: {
-        width: 90,
-        height: 120,
-        backgroundColor: '#F0F0F0',
-        borderRadius: 8,
-        marginRight: 18,
-        overflow: 'hidden',
-    },
-    bookImage: {
-        width: '100%',
-        height: '100%',
-    },
-    bookInfo: {
-        flex: 1,
-        justifyContent: 'center',
-    },
-    bookTitle: {
-        fontFamily: 'SUIT-SemiBold',
-        fontSize: 17,
-        fontWeight: '600',
-        color: '#0D2525',
-        letterSpacing: -0.4,
-        marginBottom: 8,
-        lineHeight: 22,
-    },
-    bookAuthor: {
-        fontFamily: 'SUIT-Medeum',
-        fontSize: 15,
-        color: '#666',
-        fontWeight: '500',
-        letterSpacing: -0.35,
-        marginBottom: 8,
-    },
-    bookDescription: {
-        fontFamily: 'SUIT-Medeum',
-        fontSize: 15,
-        color: '#666',
-        fontWeight: '500',
-        letterSpacing: -0.35,
-        lineHeight: 20,
-    },
-});
 
 export default Recommendation;
