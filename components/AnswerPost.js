@@ -7,11 +7,15 @@ import {
     ActivityIndicator, 
     Alert,
     Keyboard,
-    Animated
+    Animated,
+    Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import MintStar from '../assets/icons/MintStar.svg';
 import { answerPostStyle } from '../styles/AnswerPostStyle';
+import { useAuth } from '../AuthContext';
+
+const API_BASE_URL = "http://13.124.86.254";
 
 const AnswerPost = ({ 
     replyingTo, 
@@ -20,11 +24,43 @@ const AnswerPost = ({
     onSubmitAnswer, 
     onGenerateAI 
 }) => {
+    const { authenticatedFetch } = useAuth();
     const [newAnswer, setNewAnswer] = useState('');
     const [submittingAnswer, setSubmittingAnswer] = useState(false);
     const [generatingAI, setGeneratingAI] = useState(false);
     const [generatedAIAnswer, setGeneratedAIAnswer] = useState(null);
     const [submittingAIAnswer, setSubmittingAIAnswer] = useState(false);
+    const [userProfile, setUserProfile] = useState(null);
+
+    // 컴포넌트 마운트 시 사용자 프로필 로드
+    useEffect(() => {
+        loadUserProfile();
+    }, []);
+
+    const loadUserProfile = async () => {
+        try {
+            const response = await authenticatedFetch(`${API_BASE_URL}/api/members/profile`, {
+                method: 'GET',
+            });
+
+            if (!response.ok) {
+                throw new Error(`프로필 조회 실패! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.isSuccess && data.result) {
+                setUserProfile({
+                    id: data.result.id,
+                    name: data.result.name,
+                    nickname: data.result.nickname,
+                    profileImg: data.result.profileImg
+                });
+            }
+        } catch (error) {
+            console.error('사용자 프로필 로딩 실패:', error);
+        }
+    };
 
     const handleSubmitAnswer = async () => {
         if (!newAnswer.trim()) {
@@ -246,9 +282,17 @@ const AnswerPost = ({
                     <View style={answerPostStyle.inputRow}>
                         {/* 현재 사용자의 프로필 */}
                         <View style={answerPostStyle.userIconContainer}>
-                            <View style={answerPostStyle.userIconSmall}>
-                                <Ionicons name="person-outline" size={16} color="#999" />
-                            </View>
+                            {userProfile?.profileImg ? (
+                                <Image 
+                                    source={{ uri: userProfile.profileImg }}
+                                    style={answerPostStyle.userProfileImage}
+                                    resizeMode="cover"
+                                />
+                            ) : (
+                                <View style={answerPostStyle.userIconSmall}>
+                                    <Ionicons name="person-outline" size={16} color="#999" />
+                                </View>
+                            )}
                         </View>
                         <TextInput
                             style={answerPostStyle.answerInput}

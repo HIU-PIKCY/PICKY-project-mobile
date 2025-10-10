@@ -36,6 +36,7 @@ export const answerPostStyle = StyleSheet.create({
         width: 30,
         height: 30,
         marginRight: 8,
+        marginTop: 3,
         borderRadius: 15,
         overflow: 'hidden',
     },
@@ -46,6 +47,12 @@ export const answerPostStyle = StyleSheet.create({
         height: 30,
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    userProfileImage: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        backgroundColor: '#F0F0F0',
     },
     answerInput: {
         flex: 1,
