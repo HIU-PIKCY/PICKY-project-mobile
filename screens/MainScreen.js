@@ -177,7 +177,7 @@ const MainScreen = () => {
       if (data.isSuccess && data.result && data.result.books) {
         const books = data.result.books.slice(0, 5).map(book => ({
           id: book.bookId,
-          isbn: book.isbn,
+          isbn: book.bookIsbn,
           title: book.bookTitle,
           author: book.bookAuthor,
           coverImage: book.bookCover
@@ -263,15 +263,13 @@ const MainScreen = () => {
       return;
     }
 
-    const identifier = book.isbn || book.id;
-
-    if (!identifier) {
-      console.error('책 식별자(ISBN 또는 ID)가 없습니다:', book);
+    if (!book.isbn) {
+      console.error('ISBN이 없습니다:', book);
       return;
     }
 
     navigation.navigate("BookDetail", {
-      isbn: book.isbn || book.id,
+      isbn: book.isbn,
       bookData: {
         isbn: book.isbn,
         title: book.title,
