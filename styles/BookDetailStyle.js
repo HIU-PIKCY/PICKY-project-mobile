@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "flex-start",
         marginBottom: 5,
-        minHeight: 173, // 최소 높이 보장
+        minHeight: 173,
     },
     cover: {
         width: 115,
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
         fontFamily: "SUIT-SemiBold",
         color: "#0D2525",
         marginBottom: 12,
-        lineHeight: 22, // 줄간격 추가
+        lineHeight: 22,
     },
     metaRow: {
         flexDirection: "row",
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
         fontFamily: "SUIT-Medium",
         color: "#666",
         marginRight: 10,
-        minWidth: 60, // 라벨 최소 너비 설정
+        minWidth: 60,
     },
     metaValue: {
         fontSize: 14,
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
         paddingVertical: 5,
         borderRadius: 4,
         alignSelf: "flex-start",
-        marginTop: 5, // 메타 정보와 버튼 사이 간격
+        marginTop: 5,
     },
     addButton: {
         borderWidth: 1,
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
         paddingVertical: 5,
         borderRadius: 4,
         alignSelf: "flex-start",
-        marginTop: 5, // 메타 정보와 버튼 사이 간격
+        marginTop: 5,
     },
     buttonDisabled: {
         opacity: 0.6,
@@ -346,7 +346,62 @@ const styles = StyleSheet.create({
     deleteQuestionButton: {
         marginLeft: 8,
         padding: 4,
-    }
+    },
+    // 모달 스타일
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 40,
+    },
+    modalContainer: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#E8E8E8',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 5,
+        minWidth: 200,
+    },
+    modalItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F0F0F0',
+    },
+    modalItemFirst: {
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+    },
+    modalItemLast: {
+        borderBottomWidth: 0,
+        borderBottomLeftRadius: 12,
+        borderBottomRightRadius: 12,
+    },
+    modalItemSelected: {
+        backgroundColor: '#F0F8FF',
+    },
+    modalItemText: {
+        fontSize: 16,
+        color: '#333333',
+        fontWeight: '400',
+        fontFamily: 'SUIT-Medium',
+    },
+    modalItemTextSelected: {
+        color: '#007AFF',
+        fontWeight: '600',
+        fontFamily: 'SUIT-SemiBold',
+    },
 });
 
 export default styles;

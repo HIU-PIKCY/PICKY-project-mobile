@@ -11,7 +11,8 @@ import {
     Image,
     ActivityIndicator,
     RefreshControl,
-    Alert
+    Alert,
+    Modal
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import CustomHeader from "../components/CustomHeader";
@@ -40,6 +41,7 @@ const BookDetail = ({ navigation, route }) => {
     const [processing, setProcessing] = useState(false);
     const [statusChanging, setStatusChanging] = useState(false);
     const [error, setError] = useState(null);
+    const [statusModalVisible, setStatusModalVisible] = useState(false);
 
     // 화면 포커스 시 질문 목록 새로고침
     useFocusEffect(
@@ -59,6 +61,12 @@ const BookDetail = ({ navigation, route }) => {
             loadQuestions();
         }
     }, [book?.bookId, selectedSort]);
+
+    // 읽기 상태 옵션
+    const readingStatusOptions = [
+        { value: 'READING', label: '읽는 중' },
+        { value: 'COMPLETED', label: '완독' }
+    ];
 
     // 읽기 상태 한국어 변환 함수
     const convertReadingStatus = (status) => {
@@ -220,75 +228,48 @@ const BookDetail = ({ navigation, route }) => {
         }
     };
 
-    // 읽기 상태 변경 함수
-    const changeReadingStatus = async () => {
+    // 읽기 상태 변경 핸들러
+    const handleStatusChange = async (newStatus) => {
         if (!book?.libraryId || statusChanging) return;
 
-        const currentStatus = book.readingStatus;
-        const newStatus = currentStatus === '읽는 중' ? '완독' : '읽는 중';
-        const englishStatus = convertStatusToEnglish(newStatus);
-
-        Alert.alert(
-            '읽기 상태 변경',
-            `이 도서의 상태를 '${newStatus}'으로 변경하시겠습니까?`,
-            [
-                {
-                    text: '취소',
-                    style: 'cancel'
-                },
-                {
-                    text: '변경',
-                    onPress: async () => {
-                        await performStatusChange(englishStatus, newStatus);
-                    }
-                }
-            ]
-        );
-    };
-
-    // 실제 상태 변경 수행
-    const performStatusChange = async (englishStatus, koreanStatus) => {
         try {
             setStatusChanging(true);
 
-            const response = await authenticatedFetch(`${API_BASE_URL}/api/book-shelf/${book.libraryId}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    status: englishStatus
-                })
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                
-                if (data.isSuccess) {
-                    Alert.alert('변경 완료', `읽기 상태가 '${koreanStatus}'으로 변경되었습니다.`);
-                    
-                    // 로컬 상태 즉시 업데이트
-                    setBook(prevBook => ({
-                        ...prevBook,
-                        readingStatus: koreanStatus
-                    }));
-
-                    // 서버에서 최신 데이터 다시 로드
-                    setTimeout(() => {
-                        loadBookData();
-                    }, 500);
-                } else {
-                    throw new Error(data.message || '상태 변경에 실패했습니다.');
+            const response = await authenticatedFetch(
+                `${API_BASE_URL}/api/book-shelf/${book.libraryId}`,
+                {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ status: newStatus })
                 }
-            } else {
-                const errorText = await response.text();
-                console.error('상태 변경 실패 응답:', errorText);
-                throw new Error('상태 변경 요청이 실패했습니다.');
+            );
+
+            if (!response.ok) {
+                throw new Error('읽기 상태 변경 실패');
             }
 
+            const data = await response.json();
+
+            if (data.isSuccess) {
+                // 상태 업데이트
+                setBook(prevBook => ({
+                    ...prevBook,
+                    readingStatus: convertReadingStatus(newStatus)
+                }));
+                setStatusModalVisible(false);
+
+                // 서재 데이터 새로고침
+                setTimeout(() => {
+                    loadBookData();
+                }, 500);
+            } else {
+                throw new Error(data.message || '상태 변경에 실패했습니다.');
+            }
         } catch (error) {
-            console.error('상태 변경 오류:', error);
-            Alert.alert('변경 실패', error.message || '상태 변경 중 오류가 발생했습니다.');
+            console.error('읽기 상태 변경 실패:', error);
+            Alert.alert('오류', '읽기 상태 변경에 실패했습니다.');
         } finally {
             setStatusChanging(false);
         }
@@ -398,7 +379,7 @@ const BookDetail = ({ navigation, route }) => {
                             'Content-Type': 'application/json',
                         },
                         body: JSON.stringify({
-                            bookId: book.bookId, // null일 수 있음
+                            bookId: book.bookId,
                             isbn: book.isbn,
                             title: book.title,
                             authors: book.authors,
@@ -440,7 +421,7 @@ const BookDetail = ({ navigation, route }) => {
             setBook(prevBook => ({
                 ...prevBook,
                 isInLibrary: true,
-                readingStatus: '읽는 중' // 기본 상태 설정
+                readingStatus: '읽는 중'
             }));
 
             // 서버에서 최신 데이터 다시 로드
@@ -542,21 +523,6 @@ const BookDetail = ({ navigation, route }) => {
         }
         writeSheetRef.current?.open();
     };
-    
-    // 사용자가 작성한 질문인지 확인하는 함수
-    const isMyQuestion = (question) => {
-        return user && question.authorId && question.authorId === user.uid;
-    };
-
-    const formatPublishedDate = (dateString) => {
-        if (!dateString) return "-";
-        try {
-            const date = new Date(dateString);
-            return date.getFullYear();
-        } catch {
-            return dateString;
-        }
-    };
 
     const formatAuthors = (authors) => {
         if (!authors || authors.length === 0) return "작가 미상";
@@ -576,6 +542,53 @@ const BookDetail = ({ navigation, route }) => {
         if (book.isInLibrary) return "#90D1BE";
         return "#999";
     };
+
+    // 읽기 상태 모달 렌더링
+    const renderStatusModal = () => (
+        <Modal
+            visible={statusModalVisible}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setStatusModalVisible(false)}
+        >
+            <TouchableOpacity
+                style={styles.modalOverlay}
+                activeOpacity={1}
+                onPress={() => setStatusModalVisible(false)}
+            >
+                <View style={styles.modalContainer}>
+                    {readingStatusOptions.map((option, index) => {
+                        const currentStatus = convertStatusToEnglish(book.readingStatus);
+                        const isSelected = currentStatus === option.value;
+                        
+                        return (
+                            <TouchableOpacity
+                                key={option.value}
+                                style={[
+                                    styles.modalItem,
+                                    index === 0 && styles.modalItemFirst,
+                                    index === readingStatusOptions.length - 1 && styles.modalItemLast,
+                                    isSelected && styles.modalItemSelected
+                                ]}
+                                onPress={() => handleStatusChange(option.value)}
+                                disabled={statusChanging}
+                            >
+                                <Text style={[
+                                    styles.modalItemText,
+                                    isSelected && styles.modalItemTextSelected
+                                ]}>
+                                    {option.label}
+                                </Text>
+                                {isSelected && (
+                                    <Ionicons name="checkmark" size={16} color="#007AFF" />
+                                )}
+                            </TouchableOpacity>
+                        );
+                    })}
+                </View>
+            </TouchableOpacity>
+        </Modal>
+    );
 
     const renderEmptyQuestions = () => (
         <View style={styles.emptyContainer}>
@@ -657,7 +670,6 @@ const BookDetail = ({ navigation, route }) => {
         ));
     };
 
-    // 질문 클릭 시 질문 상세 화면으로 이동하는 함수
     const handleQuestionPress = (question) => {
         if (!question || !book) return;
     
@@ -782,8 +794,8 @@ const BookDetail = ({ navigation, route }) => {
                                 <Text style={styles.metaLabel}>상태</Text>
                                 {book.isInLibrary && book.readingStatus ? (
                                     <TouchableOpacity 
-                                        style={styles.statusContainer}
-                                        onPress={changeReadingStatus}
+                                       style={styles.statusContainer}
+                                        onPress={() => setStatusModalVisible(true)}
                                         disabled={statusChanging}
                                         activeOpacity={0.7}
                                     >
@@ -876,6 +888,9 @@ const BookDetail = ({ navigation, route }) => {
                     <Text style={styles.submitButtonText}>질문 등록</Text>
                 </TouchableOpacity>
             </View>
+
+            {/* 읽기 상태 모달 */}
+            {renderStatusModal()}
 
             <AIQuestionSheet 
                 ref={aiSheetRef} 
