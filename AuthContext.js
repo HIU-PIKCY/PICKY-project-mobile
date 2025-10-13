@@ -2,9 +2,6 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from './config/firebaseConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
-import { Platform } from 'react-native';
 
 const AuthContext = createContext({});
 
@@ -15,15 +12,6 @@ export const useAuth = () => {
     }
     return context;
 };
-
-// 알림 핸들러 설정
-Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: false,
-    }),
-});
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
@@ -45,108 +33,6 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
             console.error('토큰 초기화 실패:', error);
             throw error;
-        }
-    };
-
-    // Expo Push Token 받기
-    const registerForPushNotificationsAsync = async () => {
-        let token;
-
-        if (Platform.OS === 'android') {
-            await Notifications.setNotificationChannelAsync('default', {
-                name: 'default',
-                importance: Notifications.AndroidImportance.MAX,
-                vibrationPattern: [0, 250, 250, 250],
-                lightColor: '#FF231F7C',
-            });
-        }
-
-        if (Device.isDevice) {
-            const { status: existingStatus } = await Notifications.getPermissionsAsync();
-            let finalStatus = existingStatus;
-
-            if (existingStatus !== 'granted') {
-                const { status } = await Notifications.requestPermissionsAsync();
-                finalStatus = status;
-            }
-
-            if (finalStatus !== 'granted') {
-                console.log('알림 권한이 거부되었습니다.');
-                return null;
-            }
-
-            try {
-                token = (await Notifications.getExpoPushTokenAsync({
-                    projectId: '59f60846-0250-4c8a-adb9-fcdef1434fc0'
-                })).data;
-                console.log('Expo Push Token:', token);
-            } catch (error) {
-                console.error('Push Token 받기 실패:', error);
-                return null;
-            }
-        } else {
-            console.log('실제 기기에서만 푸시 알림을 사용할 수 있습니다.');
-        }
-
-        return token;
-    };
-
-    // FCM 토큰을 서버에 저장
-    const saveFCMTokenToServer = async () => {
-        try {
-            const pushToken = await registerForPushNotificationsAsync();
-
-            if (pushToken) {
-                const response = await authenticatedFetch(
-                    `${API_BASE_URL}/api/notifications/fcm-token`,
-                    {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ fcmToken: pushToken }),
-                    }
-                );
-
-                if (response.ok) {
-                    console.log('FCM 토큰 서버에 저장 성공');
-                    return true;
-                } else {
-                    console.error('FCM 토큰 서버 저장 실패:', response.status);
-                    return false;
-                }
-            } else {
-                console.log('푸시 토큰을 받지 못했습니다. 더미 토큰 사용');
-                // 더미 토큰 저장
-                return await saveDummyFCMToken();
-            }
-        } catch (error) {
-            console.error('FCM 토큰 저장 중 에러:', error);
-            // 에러 발생 시 더미 토큰 저장
-            return await saveDummyFCMToken();
-        }
-    };
-
-    // 더미 FCM 토큰 저장 - 실패 시에도 조회는 동작
-    const saveDummyFCMToken = async () => {
-        try {
-            const dummyToken = `test-fcm-token-${Date.now()}`;
-
-            const response = await authenticatedFetch(
-                `${API_BASE_URL}/api/notifications/fcm-token`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ fcmToken: dummyToken }),
-                }
-            );
-
-            if (response.ok) {
-                console.log('더미 FCM 토큰 저장 성공:', dummyToken);
-                return true;
-            }
-            return false;
-        } catch (error) {
-            console.error('더미 FCM 토큰 저장 실패:', error);
-            return false;
         }
     };
 
@@ -177,11 +63,8 @@ export const AuthProvider = ({ children }) => {
             if (data.isSuccess && data.result && data.result.tokenInfo) {
                 // 토큰 저장
                 await initializeTokens(data.result.tokenInfo.accessToken, data.result.tokenInfo.refreshToken);
-
-                // 로그인 성공 후 FCM 토큰 저장
-                saveFCMTokenToServer().catch(err =>
-                    console.error('FCM 토큰 저장 실패했지만 로그인은 계속:', err)
-                );
+                
+                console.log('백엔드 로그인 완료');
 
                 return data;
             } else {
@@ -257,6 +140,7 @@ export const AuthProvider = ({ children }) => {
 
                         if (backendResponse.isSuccess) {
                             setUser(firebaseUser);
+                            setLoading(false);
                             console.log('사용자 로그인 완료 - 메인 화면으로 이동');
                         } else {
                             console.error('백엔드 로그인 실패:', backendResponse.message);
@@ -288,23 +172,6 @@ export const AuthProvider = ({ children }) => {
         });
 
         return unsubscribe;
-    }, []);
-
-    // 알림 수신 리스너
-    useEffect(() => {
-        const notificationListener = Notifications.addNotificationReceivedListener(notification => {
-            console.log('알림 수신:', notification);
-        });
-
-        const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
-            console.log('알림 클릭:', response);
-            // 여기서 알림 클릭 시 화면 이동 처리
-        });
-
-        return () => {
-            Notifications.removeNotificationSubscription(notificationListener);
-            Notifications.removeNotificationSubscription(responseListener);
-        };
     }, []);
 
     // 로그아웃 함수

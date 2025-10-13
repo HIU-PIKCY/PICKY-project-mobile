@@ -13,7 +13,7 @@ import {
     Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile, signOut, deleteUser } from 'firebase/auth';
 import { auth } from '../config/firebaseConfig';
 import { useAuth } from '../AuthContext';
 import CustomHeader from '../components/CustomHeader';
@@ -145,20 +145,23 @@ const RegisterScreen = ({ navigation }) => {
         if (!validateForm()) return;
 
         setLoading(true);
+        let firebaseUser = null;
+        
         try {
             console.log('회원가입 프로세스 시작');
             
-            // 1. 플래그를 가장 먼저 설정 (Firebase 회원가입 전에)
+            // ✅ 1. 플래그를 가장 먼저 설정 (Firebase 회원가입 전에!)
             setSignupFlag();
             
             // 2. Firebase 회원가입
             console.log('Firebase 회원가입 시도');
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            console.log('Firebase 회원가입 성공:', userCredential.user.uid);
+            firebaseUser = userCredential.user;
+            console.log('Firebase 회원가입 성공:', firebaseUser.uid);
             
             // 3. Firebase 프로필 업데이트
             console.log('Firebase 프로필 업데이트 중');
-            await updateProfile(userCredential.user, {
+            await updateProfile(firebaseUser, {
                 displayName: JSON.stringify({
                     name: name.trim(),
                     nickname: nickname.trim()
@@ -168,7 +171,7 @@ const RegisterScreen = ({ navigation }) => {
 
             // 4. Firebase ID 토큰 가져오기
             console.log('Firebase ID 토큰 가져오기');
-            const idToken = await userCredential.user.getIdToken();
+            const idToken = await firebaseUser.getIdToken();
             console.log('Firebase ID 토큰 획득 성공');
             
             // 5. 백엔드에 회원가입 요청
@@ -176,34 +179,61 @@ const RegisterScreen = ({ navigation }) => {
             const backendResponse = await signUpWithBackend(idToken);
             
             if (backendResponse.isSuccess) {
-                // 6. 회원가입 완료 - 플래그 초기화
-                clearSignupFlag();
+                // 6. 회원가입 완료 - Firebase 로그아웃 후 플래그 초기화
                 console.log('전체 회원가입 프로세스 완료');
                 
-                Alert.alert(
-                    '회원가입 완료',
-                    '회원가입이 성공적으로 완료되었습니다. 로그인해주세요.',
-                    [
-                        {
-                            text: '확인',
-                            onPress: () => {
-                                navigation.navigate('Login');
+                // 플래그 먼저 초기화
+                clearSignupFlag();
+                
+                // Firebase 로그아웃
+                await signOut(auth);
+                console.log('Firebase 로그아웃 완료');
+                
+                // 약간의 딜레이 후 Alert 표시
+                setTimeout(() => {
+                    Alert.alert(
+                        '회원가입 완료',
+                        '회원가입이 성공적으로 완료되었습니다. 로그인해주세요.',
+                        [
+                            {
+                                text: '확인',
+                                onPress: () => {
+                                    navigation.replace('Login');
+                                }
                             }
-                        }
-                    ]
-                );
+                        ]
+                    );
+                }, 300);
             } else {
                 throw new Error('백엔드 회원가입 실패: ' + backendResponse.message);
             }
         } catch (error) {
-            // 에러 발생 시 플래그 초기화
-            clearSignupFlag();
-            
+            // 에러 발생 시
             console.error('회원가입 실패 상세:', {
                 code: error.code,
                 message: error.message,
                 stack: error.stack
             });
+            
+            // Firebase 사용자가 생성되었다면 삭제
+            if (firebaseUser) {
+                try {
+                    console.log('Firebase 사용자 삭제 시도');
+                    await deleteUser(firebaseUser);
+                    console.log('Firebase 사용자 삭제 완료');
+                } catch (deleteError) {
+                    console.error('Firebase 사용자 삭제 실패:', deleteError);
+                    // 삭제 실패해도 로그아웃 시도
+                    try {
+                        await signOut(auth);
+                    } catch (signOutError) {
+                        console.error('로그아웃 실패:', signOutError);
+                    }
+                }
+            }
+            
+            // 플래그 초기화
+            clearSignupFlag();
             
             let errorMessage = '회원가입 중 오류가 발생했습니다.';
             
@@ -235,6 +265,8 @@ const RegisterScreen = ({ navigation }) => {
                     errorMessage = '이미 가입된 회원이거나 잘못된 요청입니다.';
                 } else if (error.message.includes('401')) {
                     errorMessage = 'Firebase 인증에 실패했습니다.';
+                } else if (error.message.includes('500')) {
+                    errorMessage = '서버 오류가 발생했습니다. 이미 가입된 이메일일 수 있습니다.';
                 } else {
                     errorMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
                 }
