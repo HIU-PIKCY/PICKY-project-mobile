@@ -15,6 +15,7 @@ import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { styles } from "../styles/MyLibraryStyle";
 import CustomHeader from '../components/CustomHeader';
 import { useAuth } from "../AuthContext";
+import { Ionicons } from '@expo/vector-icons';
 
 const MyLibrary = () => {
     const navigation = useNavigation();
@@ -247,6 +248,7 @@ const MyLibrary = () => {
 
     const renderEmptyState = () => (
         <View style={styles.emptyContainer}>
+            <Ionicons name="book-outline" size={64} color="#CCC" style={{ marginBottom: 16 }} />
             <Text style={styles.emptyText}>
                 {selectedFilter === "전체" 
                     ? "아직 등록된 책이 없습니다" 

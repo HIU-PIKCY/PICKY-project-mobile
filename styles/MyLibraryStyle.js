@@ -35,6 +35,25 @@ export const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorBanner: {
+    backgroundColor: '#FFE5E5',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 8,
+  },
+  errorBannerText: {
+    fontFamily: 'SUIT-Medium',
+    fontSize: 14,
+    color: '#D32F2F',
+    textAlign: 'center',
+  },
   recommendationCard: {
     borderRadius: 10,
     borderWidth: 0.5,
@@ -145,5 +164,28 @@ export const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'flex-start',
     paddingBottom: 20,
+  },
+  // 빈 상태 스타일 추가
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 80,
+    paddingHorizontal: 40,
+  },
+  emptyText: {
+    fontFamily: 'SUIT-Medium',
+    fontSize: 17,
+    color: '#999999',
+    textAlign: 'center',
+    marginBottom: 8,
+    letterSpacing: -0.4,
+  },
+  emptySubText: {
+    fontFamily: 'SUIT-Regular',
+    fontSize: 14,
+    color: '#CCCCCC',
+    textAlign: 'center',
+    letterSpacing: -0.3,
   },
 });
