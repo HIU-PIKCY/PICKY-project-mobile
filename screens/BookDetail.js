@@ -230,7 +230,7 @@ const BookDetail = ({ navigation, route }) => {
 
         Alert.alert(
             '읽기 상태 변경',
-            `이 도서의 상태를 '${newStatus}'로 변경하시겠습니까?`,
+            `이 도서의 상태를 '${newStatus}'으로 변경하시겠습니까?`,
             [
                 {
                     text: '취소',
@@ -265,7 +265,7 @@ const BookDetail = ({ navigation, route }) => {
                 const data = await response.json();
                 
                 if (data.isSuccess) {
-                    Alert.alert('변경 완료', `읽기 상태가 '${koreanStatus}'로 변경되었습니다.`);
+                    Alert.alert('변경 완료', `읽기 상태가 '${koreanStatus}'으로 변경되었습니다.`);
                     
                     // 로컬 상태 즉시 업데이트
                     setBook(prevBook => ({
@@ -450,7 +450,7 @@ const BookDetail = ({ navigation, route }) => {
 
         } catch (error) {
             console.error('서재 등록 오류:', error);
-            Alert.alert('등록 실패', error.message || '서재 등록 중 오류가 발생했습니다.');
+            Alert.alert('등록 실패', error.message || '도서 등록 중 오류가 발생했습니다.');
         }
     };
 

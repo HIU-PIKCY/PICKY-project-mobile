@@ -370,7 +370,6 @@ const QuestionDetail = ({ navigation, route }) => {
                     setQuestion(prev => ({ ...prev, answersCount: prev.answersCount + 1 }));
                     setReplyingTo(null);
                     setReplyingToAuthor('');
-                    Alert.alert('등록 완료', '답글이 등록되었습니다.');
                     return true;
                 }
             } else {
@@ -395,7 +394,6 @@ const QuestionDetail = ({ navigation, route }) => {
                 if (data.isSuccess) {
                     await loadAnswers();
                     setQuestion(prev => ({ ...prev, answersCount: prev.answersCount + 1 }));
-                    Alert.alert('등록 완료', '답변이 등록되었습니다.');
                     return true;
                 }
             }

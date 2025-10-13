@@ -350,7 +350,6 @@ const ProfileManagement = ({ navigation }) => {
                 try {
                     const imageUrl = await uploadImageToS3(selectedAsset.uri);
                     setProfileImage(imageUrl);
-                    Alert.alert('성공', '프로필 사진이 업로드되었습니다. 저장 버튼을 눌러주세요.');
                 } catch (uploadError) {
                     console.error('업로드 에러:', uploadError);
                     Alert.alert('오류', uploadError.message || '이미지 업로드 중 오류가 발생했습니다.');
