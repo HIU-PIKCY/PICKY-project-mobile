@@ -226,4 +226,45 @@ export const styles = StyleSheet.create({
         letterSpacing: -0.35,
         lineHeight: 20,
     },
+    // 데이터 부족 카드 스타일 추가
+    insufficientCard: {
+        backgroundColor: '#FFFFFF',
+        padding: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#90D1BE',
+        shadowOffset: {
+            width: 2,
+            height: 2,
+        },
+        shadowOpacity: 0.5,
+        shadowRadius: 4,
+        elevation: 4,
+    },
+    insufficientIconWrapper: {
+        marginBottom: 16,
+    },
+    insufficientTitle: {
+        fontFamily: 'SUIT-SemiBold',
+        fontSize: 16,
+        color: '#0D2525',
+        marginBottom: 8,
+        letterSpacing: -0.4,
+    },
+    insufficientMessage: {
+        fontFamily: 'SUIT-Medium',
+        fontSize: 14,
+        color: '#999999',
+        textAlign: 'center',
+        marginBottom: 4,
+        letterSpacing: -0.3,
+    },
+    insufficientSubMessage: {
+        fontFamily: 'SUIT-Regular',
+        fontSize: 13,
+        color: '#CCCCCC',
+        textAlign: 'center',
+        letterSpacing: -0.3,
+    },
 });

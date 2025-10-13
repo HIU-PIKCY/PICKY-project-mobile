@@ -26,30 +26,25 @@ const Recommendation = ({ navigation }) => {
     const [recommendationData, setRecommendationData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const skipNextFocus = useRef(false); // 다음 포커스를 스킵할지 여부
-    const isInitialMount = useRef(true); // 초기 마운트 여부
+    const skipNextFocus = useRef(false);
+    const isInitialMount = useRef(true);
 
     useEffect(() => {
-        // 초기 마운트 시 데이터 로드
         loadRecommendations(true);
         isInitialMount.current = false;
     }, []);
 
-    // 화면 포커스 시 API 호출
     useFocusEffect(
         React.useCallback(() => {
-            // 초기 마운트는 useEffect에서 처리하므로 스킵
             if (isInitialMount.current) {
                 return;
             }
 
-            // skipNextFocus가 true면 이번 포커스는 스킵 (북카드에서 돌아온 경우)
             if (skipNextFocus.current) {
                 skipNextFocus.current = false;
                 return;
             }
             
-            // 네비게이션으로 재진입한 경우 API 호출
             loadRecommendations(true);
         }, [])
     );
@@ -68,7 +63,6 @@ const Recommendation = ({ navigation }) => {
                 loadPickyPickRecommendation()
             ]);
             
-            // 로딩을 표시하는 경우에만 최소 2초 보장
             if (showLoading) {
                 const elapsedTime = Date.now() - startTime;
                 const remainingTime = Math.max(0, 2000 - elapsedTime);
@@ -80,7 +74,6 @@ const Recommendation = ({ navigation }) => {
         } catch (error) {
             console.error('추천 데이터 로딩 실패:', error);
             
-            // 에러가 발생해도 로딩 표시 중이면 최소 2초는 유지
             if (showLoading) {
                 const elapsedTime = Date.now() - startTime;
                 const remainingTime = Math.max(0, 2000 - elapsedTime);
@@ -96,7 +89,6 @@ const Recommendation = ({ navigation }) => {
         }
     };
 
-    // 질문 기반 추천 로드
     const loadQuestionBasedRecommendation = async () => {
         try {
             const response = await authenticatedFetch(
@@ -107,6 +99,10 @@ const Recommendation = ({ navigation }) => {
             );
 
             if (!response.ok) {
+                if (response.status === 404) {
+                    setRecommendationData(prev => ({ ...prev, questionBased: 'insufficient' }));
+                    return;
+                }
                 throw new Error(`질문 기반 추천 조회 실패! status: ${response.status}`);
             }
 
@@ -131,11 +127,10 @@ const Recommendation = ({ navigation }) => {
             }
         } catch (error) {
             console.error('질문 기반 추천 로딩 실패:', error);
-            setRecommendationData(prev => ({ ...prev, questionBased: null }));
+            setRecommendationData(prev => ({ ...prev, questionBased: 'insufficient' }));
         }
     };
 
-    // 답변 기반 추천 로드
     const loadAnswerBasedRecommendation = async () => {
         try {
             const response = await authenticatedFetch(
@@ -146,6 +141,10 @@ const Recommendation = ({ navigation }) => {
             );
 
             if (!response.ok) {
+                if (response.status === 404) {
+                    setRecommendationData(prev => ({ ...prev, answerBased: 'insufficient' }));
+                    return;
+                }
                 throw new Error(`답변 기반 추천 조회 실패! status: ${response.status}`);
             }
 
@@ -170,11 +169,10 @@ const Recommendation = ({ navigation }) => {
             }
         } catch (error) {
             console.error('답변 기반 추천 로딩 실패:', error);
-            setRecommendationData(prev => ({ ...prev, answerBased: null }));
+            setRecommendationData(prev => ({ ...prev, answerBased: 'insufficient' }));
         }
     };
 
-    // 피키 유저 추천 로드
     const loadPickyPickRecommendation = async () => {
         try {
             const response = await authenticatedFetch(
@@ -194,14 +192,12 @@ const Recommendation = ({ navigation }) => {
                 setRecommendationData(prev => ({
                     ...prev,
                     pickyPick: {
-                        book: {
-                            id: data.result.id,
-                            title: data.result.title,
-                            author: data.result.author,
-                            coverImage: data.result.coverImage,
-                            isbn: data.result.isbn,
-                            description: data.result.description
-                        }
+                        id: data.result.id,
+                        title: data.result.title,
+                        author: data.result.author,
+                        coverImage: data.result.coverImage,
+                        isbn: data.result.isbn,
+                        description: data.result.description
                     }
                 }));
             }
@@ -213,8 +209,8 @@ const Recommendation = ({ navigation }) => {
 
     const onRefresh = async () => {
         setRefreshing(true);
-        setLoading(true); // 새로고침 시에도 로딩 애니메이션 표시
-        await loadRecommendations(true); // 로딩 표시하며 데이터 갱신
+        setLoading(true);
+        await loadRecommendations(true);
         setRefreshing(false);
     };
 
@@ -222,14 +218,12 @@ const Recommendation = ({ navigation }) => {
         navigation.goBack();
     };
 
-    // 책 상세 페이지로 이동
     const handleBookPress = (book) => {
         if (!book || !book.isbn) {
             console.error('책 정보가 없습니다:', book);
             return;
         }
 
-        // 북카드 클릭 시 다음 포커스를 스킵하도록 설정
         skipNextFocus.current = true;
 
         navigation.navigate("BookDetail", {
@@ -245,39 +239,69 @@ const Recommendation = ({ navigation }) => {
         });
     };
 
-    // 요약 텍스트를 55자로 제한하고 생략 처리
     const truncateText = (text, maxLength = 55) => {
         if (!text) return '';
         if (text.length <= maxLength) return text;
         return text.substring(0, maxLength) + '···';
     };
 
-    // 질문 제목이나 책 제목을 15자로 제한
     const truncateTitle = (text, maxLength = 15) => {
         if (!text) return '';
         if (text.length <= maxLength) return text;
         return text.substring(0, maxLength) + '···';
     };
 
+    const renderInsufficientDataCard = (type) => {
+        const messages = {
+            question: {
+                icon: 'bulb-outline',
+                title: '질문 기반 추천',
+                message: '아직 질문 참여 데이터가 부족해요',
+                subMessage: '더 많은 질문에 참여해보세요!'
+            },
+            answer: {
+                icon: 'newspaper-outline',
+                title: '답변 기반 추천',
+                message: '아직 답변 작성 데이터가 부족해요',
+                subMessage: '다양한 답변을 작성해보세요!'
+            }
+        };
+
+        const content = messages[type];
+
+        return (
+            <View style={styles.insufficientCard}>
+                <View style={styles.insufficientIconWrapper}>
+                    <Ionicons name={content.icon} size={32} color="#90D1BE" />
+                </View>
+                <Text style={styles.insufficientTitle}>{content.title}</Text>
+                <Text style={styles.insufficientMessage}>{content.message}</Text>
+                <Text style={styles.insufficientSubMessage}>{content.subMessage}</Text>
+            </View>
+        );
+    };
+
     const renderBookCard = (bookData) => {
+        const book = bookData.book || bookData;
+        
         return (
             <TouchableOpacity 
                 style={styles.bookCard} 
-                onPress={() => handleBookPress(bookData.book)}
+                onPress={() => handleBookPress(book)}
                 activeOpacity={0.7}
             >
                 <View style={styles.bookImagePlaceholder}>
                     <Image 
-                        source={{ uri: bookData.book.coverImage }} 
+                        source={{ uri: book.coverImage }} 
                         style={styles.bookImage}
                         resizeMode="cover"
                     />
                 </View>
                 <View style={styles.bookInfo}>
-                    <Text style={styles.bookTitle}>{bookData.book.title}</Text>
-                    <Text style={styles.bookAuthor}>{bookData.book.author}</Text>
+                    <Text style={styles.bookTitle}>{book.title}</Text>
+                    <Text style={styles.bookAuthor}>{book.author}</Text>
                     <Text style={styles.bookDescription}>
-                        {truncateText(bookData.book.description, 55)}
+                        {truncateText(book.description, 55)}
                     </Text>
                 </View>
             </TouchableOpacity>
@@ -292,7 +316,6 @@ const Recommendation = ({ navigation }) => {
         </View>
     );
 
-    // AI 생성 중 애니메이션 컴포넌트
     const AILoadingAnimation = () => {
         const [pulseAnim] = useState(new Animated.Value(1));
         const [sparkles] = useState([
@@ -302,7 +325,6 @@ const Recommendation = ({ navigation }) => {
         ]);
 
         useEffect(() => {
-            // 펄스 애니메이션
             Animated.loop(
                 Animated.sequence([
                     Animated.timing(pulseAnim, {
@@ -318,7 +340,6 @@ const Recommendation = ({ navigation }) => {
                 ])
             ).start();
 
-            // 반짝이는 효과
             sparkles.forEach((anim, index) => {
                 Animated.loop(
                     Animated.sequence([
@@ -340,14 +361,12 @@ const Recommendation = ({ navigation }) => {
 
         return (
             <View style={styles.aiLoadingContainer}>
-                {/* 중앙 AI 아이콘 */}
                 <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
                     <View style={styles.aiIconCircle}>
                         <Ionicons name="sparkles" size={40} color="#90D1BE" />
                     </View>
                 </Animated.View>
 
-                {/* 주변 반짝이는 별들 */}
                 <Animated.View 
                     style={[
                         styles.sparkle, 
@@ -394,7 +413,9 @@ const Recommendation = ({ navigation }) => {
     }
 
     if (!recommendationData || 
-        (!recommendationData.questionBased && !recommendationData.answerBased && !recommendationData.pickyPick)) {
+        (recommendationData.questionBased !== 'insufficient' && !recommendationData.questionBased && 
+         recommendationData.answerBased !== 'insufficient' && !recommendationData.answerBased && 
+         !recommendationData.pickyPick)) {
         return (
             <SafeAreaView style={styles.container}>
                 <StatusBar barStyle="dark-content" backgroundColor="#fff" />
@@ -408,7 +429,6 @@ const Recommendation = ({ navigation }) => {
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-            {/* 헤더 컴포넌트 */}
             <CustomHeader
                 title="추천 도서"
                 onBackPress={handleGoBack}
@@ -426,7 +446,6 @@ const Recommendation = ({ navigation }) => {
                     />
                 }
             >
-                {/* 상단 안내 메시지 */}
                 <View style={styles.infoCard}>
                     <View style={styles.infoIcon}>
                         <LogoSVG width={29} height={29} />
@@ -436,47 +455,55 @@ const Recommendation = ({ navigation }) => {
                     </Text>
                 </View>
 
-                {/* 민트색 배경 컨테이너 */}
                 <View style={styles.roundedContainer}>
-                    {/* 질문 내용 기반 섹션 */}
                     {recommendationData.questionBased && (
                         <View style={styles.section}>
-                            <View style={styles.sectionHeader}>
-                                <View style={styles.sectionQuestionContainer}>
-                                    <View style={styles.highlightTag}>
-                                        <Ionicons name="bulb-outline" size={16} color="#666666" style={{marginRight: 4}} />
-                                        <Text style={styles.highlightText}>
-                                            "{truncateTitle(recommendationData.questionBased.relatedQuestionTitle)}"
-                                        </Text>
+                            {recommendationData.questionBased === 'insufficient' ? (
+                                renderInsufficientDataCard('question')
+                            ) : (
+                                <>
+                                    <View style={styles.sectionHeader}>
+                                        <View style={styles.sectionQuestionContainer}>
+                                            <View style={styles.highlightTag}>
+                                                <Ionicons name="bulb-outline" size={16} color="#666666" style={{marginRight: 4}} />
+                                                <Text style={styles.highlightText}>
+                                                    "{truncateTitle(recommendationData.questionBased.relatedQuestionTitle)}"
+                                                </Text>
+                                            </View>
+                                            <Text style={styles.normalText}>을 참고했어요!</Text>
+                                        </View>
+                                        <Text style={styles.sectionTitle}>질문 내용 기반</Text>
                                     </View>
-                                    <Text style={styles.normalText}>을 참고했어요!</Text>
-                                </View>
-                                <Text style={styles.sectionTitle}>질문 내용 기반</Text>
-                            </View>
-                            {renderBookCard(recommendationData.questionBased)}
+                                    {renderBookCard(recommendationData.questionBased)}
+                                </>
+                            )}
                         </View>
                     )}
 
-                    {/* 답변 내용 기반 섹션 */}
                     {recommendationData.answerBased && (
                         <View style={styles.section}>
-                            <View style={styles.sectionHeader}>
-                                <View style={styles.sectionQuestionContainer}>
-                                    <View style={styles.highlightTag}>
-                                        <Ionicons name="newspaper-outline" size={16} color="#666666" style={{marginRight: 4}} />
-                                        <Text style={styles.highlightText}>
-                                            {truncateTitle(recommendationData.answerBased.relatedAnswerBookTitle)}
-                                        </Text>
+                            {recommendationData.answerBased === 'insufficient' ? (
+                                renderInsufficientDataCard('answer')
+                            ) : (
+                                <>
+                                    <View style={styles.sectionHeader}>
+                                        <View style={styles.sectionQuestionContainer}>
+                                            <View style={styles.highlightTag}>
+                                                <Ionicons name="newspaper-outline" size={16} color="#666666" style={{marginRight: 4}} />
+                                                <Text style={styles.highlightText}>
+                                                    {truncateTitle(recommendationData.answerBased.relatedAnswerBookTitle)}
+                                                </Text>
+                                            </View>
+                                            <Text style={styles.normalText}>에서 가져왔어요!</Text>
+                                        </View>
+                                        <Text style={styles.sectionTitle}>답변 내용 기반</Text>
                                     </View>
-                                    <Text style={styles.normalText}>에서 가져왔어요!</Text>
-                                </View>
-                                <Text style={styles.sectionTitle}>답변 내용 기반</Text>
-                            </View>
-                            {renderBookCard(recommendationData.answerBased)}
+                                    {renderBookCard(recommendationData.answerBased)}
+                                </>
+                            )}
                         </View>
                     )}
 
-                    {/* 피키 유저들이 선택한 책 섹션 */}
                     {recommendationData.pickyPick && (
                         <View style={styles.section}>
                             <View style={styles.sectionHeader}>
