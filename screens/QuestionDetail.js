@@ -30,7 +30,7 @@ const QuestionDetail = ({ navigation, route }) => {
     const [replyingTo, setReplyingTo] = useState(null);
     const [replyingToAuthor, setReplyingToAuthor] = useState('');
     const [userProfile, setUserProfile] = useState(null);
-    
+
     const viewCountUpdated = useRef(false);
 
     // AuthContext
@@ -115,14 +115,19 @@ const QuestionDetail = ({ navigation, route }) => {
             const data = await response.json();
 
             if (data.isSuccess && data.result) {
-                setQuestion(data.result);
+                // isAI 필드가 없을 경우 기본값 false로 설정
+                const questionData = {
+                    ...data.result,
+                    isAI: data.result.isAI ?? false
+                };
+                setQuestion(questionData);
             } else {
                 throw new Error(data.message || '질문 정보를 가져올 수 없습니다.');
             }
         } catch (error) {
             console.error('질문 정보 로딩 실패:', error);
             setError(error.message);
-            
+
             if (error.message.includes('액세스 토큰이 없습니다') || error.message.includes('토큰 갱신 실패')) {
                 Alert.alert('인증 오류', '로그인이 필요합니다.');
                 navigation.navigate('Login');
@@ -158,7 +163,7 @@ const QuestionDetail = ({ navigation, route }) => {
             if (data.isSuccess && data.result && data.result.answers) {
                 const flattenAnswers = (answersArray) => {
                     const flattened = [];
-                    
+
                     answersArray.forEach(answer => {
                         flattened.push({
                             id: answer.id,
@@ -172,7 +177,7 @@ const QuestionDetail = ({ navigation, route }) => {
                             parentId: null,
                             isAuthor: answer.isAuthor || false
                         });
-                        
+
                         if (answer.childrenAnswers && answer.childrenAnswers.length > 0) {
                             answer.childrenAnswers.forEach(childAnswer => {
                                 flattened.push({
@@ -190,7 +195,7 @@ const QuestionDetail = ({ navigation, route }) => {
                             });
                         }
                     });
-                    
+
                     return flattened;
                 };
 
@@ -242,8 +247,8 @@ const QuestionDetail = ({ navigation, route }) => {
             '정말로 이 질문을 삭제하시겠습니까?',
             [
                 { text: '취소', style: 'cancel' },
-                { 
-                    text: '삭제', 
+                {
+                    text: '삭제',
                     style: 'destructive',
                     onPress: async () => {
                         try {
@@ -282,7 +287,7 @@ const QuestionDetail = ({ navigation, route }) => {
             }
 
             const data = await response.json();
-            
+
             if (data.isSuccess) {
                 setQuestion(prev => ({
                     ...prev,
@@ -314,8 +319,8 @@ const QuestionDetail = ({ navigation, route }) => {
             '정말로 이 답변을 삭제하시겠습니까?',
             [
                 { text: '취소', style: 'cancel' },
-                { 
-                    text: '삭제', 
+                {
+                    text: '삭제',
                     style: 'destructive',
                     onPress: async () => {
                         try {
@@ -350,7 +355,7 @@ const QuestionDetail = ({ navigation, route }) => {
                 // 답글(대댓글) 등록 - parentAnswerId 포함
                 const response = await authenticatedFetch(`${API_BASE_URL}/api/questions/${question.id}/answers`, {
                     method: 'POST',
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         content: content.trim(),
                         isAI: isAI,
                         parentAnswerId: replyingTo
@@ -364,7 +369,7 @@ const QuestionDetail = ({ navigation, route }) => {
                 }
 
                 const data = await response.json();
-                
+
                 if (data.isSuccess) {
                     await loadAnswers();
                     setQuestion(prev => ({ ...prev, answersCount: prev.answersCount + 1 }));
@@ -390,7 +395,7 @@ const QuestionDetail = ({ navigation, route }) => {
                 }
 
                 const data = await response.json();
-                
+
                 if (data.isSuccess) {
                     await loadAnswers();
                     setQuestion(prev => ({ ...prev, answersCount: prev.answersCount + 1 }));
@@ -417,7 +422,7 @@ const QuestionDetail = ({ navigation, route }) => {
 
             const data = await response.json();
             console.log('AI 답변 생성 응답:', data);
-            
+
             // 백엔드가 AnswerCreateResponseDTO를 반환하지만 아직 DB에 저장하지 않음
             // content만 반환받아서 프론트에서 미리보기로 표시
             if (data && data.content) {
@@ -468,13 +473,13 @@ const QuestionDetail = ({ navigation, route }) => {
             <StatusBar barStyle="dark-content" backgroundColor="#fff" />
             <CustomHeader title="질문답변" onBackPress={handleGoBack} />
 
-            <KeyboardAvoidingView 
+            <KeyboardAvoidingView
                 style={questionDetailStyle.keyboardAvoidingView}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
             >
-                <ScrollView 
-                    style={questionDetailStyle.content} 
+                <ScrollView
+                    style={questionDetailStyle.content}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={questionDetailStyle.scrollContent}
                     refreshControl={

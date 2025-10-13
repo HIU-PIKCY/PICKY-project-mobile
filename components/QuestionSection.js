@@ -50,8 +50,13 @@ const QuestionSection = ({ question, currentUserId, onLike, onDelete }) => {
         );
     };
 
-    // 질문 작성자가 현재 사용자인지 확인 (닉네임으로 비교)
+    // 질문 작성자가 현재 사용자인지 확인
     const isQuestionOwner = question.authorId === currentUserId;
+
+    // AI 질문인 경우 닉네임을 AI 질문으로 표시
+    const displayName = question.isAI
+        ? "AI 질문"
+        : (question.nickname || question.author || "사용자");
 
     const handleMenuPress = () => {
         setShowMenu(true);
@@ -72,7 +77,7 @@ const QuestionSection = ({ question, currentUserId, onLike, onDelete }) => {
                         profileImg: question.profileImg
                     })}
                     <Text style={questionSectionStyle.questionAuthor}>
-                        {question.nickname || question.author}
+                        {displayName}
                     </Text>
                 </View>
                 

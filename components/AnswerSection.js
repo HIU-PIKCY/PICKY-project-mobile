@@ -59,6 +59,9 @@ const AnswerSection = ({
     const renderAnswer = (answer) => {
         // 답변 작성자가 현재 사용자인지 확인 (닉네임으로 비교)
         const isAnswerOwner = answer.authorId === currentUserId;
+        
+        // AI 답변인 경우 닉네임을 "AI 답변"으로 표시
+        const displayName = answer.isAI ? "AI 답변" : (answer.author || "사용자");
 
         return (
             <View key={answer.id} style={[
@@ -70,7 +73,7 @@ const AnswerSection = ({
                 </View>
                 <View style={answerSectionStyle.answerContentWrapper}>
                     <View style={answerSectionStyle.answerHeader}>
-                        <Text style={answerSectionStyle.authorName}>{answer.author}</Text>
+                        <Text style={answerSectionStyle.authorName}>{displayName}</Text>
                         <Text style={answerSectionStyle.answerDate}>{formatDate(answer.createdAt)}</Text>
                     </View>
                     <Text style={answerSectionStyle.answerText}>{answer.content}</Text>
@@ -81,7 +84,7 @@ const AnswerSection = ({
                         {answer.level === 0 && (
                             <TouchableOpacity 
                                 style={answerSectionStyle.actionButton} 
-                                onPress={() => onReplyPress(answer.id, answer.author)}
+                                onPress={() => onReplyPress(answer.id, displayName)}
                             >
                                 <Text style={answerSectionStyle.actionText}>답글 작성</Text>
                             </TouchableOpacity>
