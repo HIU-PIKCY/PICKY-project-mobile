@@ -340,7 +340,7 @@ const BookDetail = ({ navigation, route }) => {
             setQuestionsLoading(false);
         }
     };
-    
+
     // 서재 등록/삭제 처리
     const handleAddOrDeleteBook = async () => {
         if (processing) return;
@@ -606,7 +606,7 @@ const BookDetail = ({ navigation, route }) => {
                 <View style={styles.emptyContainer}>
                     <Ionicons name="alert-circle-outline" size={48} color="#CCCCCC" />
                     <Text style={styles.emptyText}>질문 기능을 사용할 수 없습니다</Text>
-                    <Text style={styles.emptySubText}>도서가 데이터베이스에 등록되지 않았습니다</Text>
+                    <Text style={styles.emptySubText}>먼저 도서를 내 서재에 등록해 보세요!</Text>
                 </View>
             );
         }
