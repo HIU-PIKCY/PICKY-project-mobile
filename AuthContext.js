@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from './config/firebaseConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -28,6 +28,8 @@ Notifications.setNotificationHandler({
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    // 회원가입 직후인지 확인하는 플래그
+    const isSignupProcess = useRef(false);
 
     // 서버 API URL
     const API_BASE_URL = 'http://13.124.86.254';
@@ -219,6 +221,18 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // 회원가입 플래그 설정 함수 (회원가입 화면에서 호출)
+    const setSignupFlag = () => {
+        isSignupProcess.current = true;
+        console.log('회원가입 플래그 설정');
+    };
+
+    // 회원가입 플래그 초기화 함수 (회원가입 완료 후 호출)
+    const clearSignupFlag = () => {
+        isSignupProcess.current = false;
+        console.log('회원가입 플래그 초기화');
+    };
+
     // Firebase 인증 상태 변화 감지
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -226,7 +240,15 @@ export const AuthProvider = ({ children }) => {
 
             try {
                 if (firebaseUser) {
-                    // Firebase 사용자가 있으면 백엔드에 로그인 시도
+                    // 회원가입 직후라면 백엔드 로그인 스킵
+                    if (isSignupProcess.current) {
+                        console.log('회원가입 직후 - 백엔드 로그인 스킵, 로딩 상태 유지');
+                        // 회원가입 중에는 user를 설정하지 않고 loading 상태를 유지
+                        // 이렇게 하면 메인 화면으로 이동하지 않음
+                        return;
+                    }
+
+                    // 일반 로그인 - 백엔드 로그인 시도
                     console.log('Firebase 사용자 감지, 백엔드 로그인 시도');
                     const idToken = await firebaseUser.getIdToken();
 
@@ -244,11 +266,7 @@ export const AuthProvider = ({ children }) => {
                         }
                     } catch (backendError) {
                         console.error('백엔드 로그인 에러:', backendError);
-
-                        // 회원가입 직후가 아닌 일반 로그인 실패의 경우에만 Firebase 로그아웃
-                        if (!backendError.message.includes('가입되지 않은')) {
-                            await signOut(auth);
-                        }
+                        await signOut(auth);
                         setUser(null);
                     }
                 } else {
@@ -256,12 +274,14 @@ export const AuthProvider = ({ children }) => {
                     console.log('Firebase 사용자 없음, 로그아웃 처리');
                     await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
                     setUser(null);
+                    isSignupProcess.current = false; // 로그아웃 시 플래그 초기화
                 }
             } catch (error) {
                 console.error('인증 상태 변화 처리 중 에러:', error);
                 // 에러 발생 시 로그아웃 처리
                 setUser(null);
                 await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
+                isSignupProcess.current = false; // 에러 시 플래그 초기화
             } finally {
                 setLoading(false);
             }
@@ -397,6 +417,8 @@ export const AuthProvider = ({ children }) => {
         refreshToken,
         authenticatedFetch,
         initializeTokens,
+        setSignupFlag, // 회원가입 플래그 설정 함수 추가
+        clearSignupFlag, // 회원가입 플래그 초기화 함수 추가
     };
 
     return (

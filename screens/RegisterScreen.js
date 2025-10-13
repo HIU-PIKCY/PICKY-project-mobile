@@ -13,8 +13,9 @@ import {
     Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { createUserWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from '../config/firebaseConfig';
+import { useAuth } from '../AuthContext';
 import CustomHeader from '../components/CustomHeader';
 
 const RegisterScreen = ({ navigation }) => {
@@ -26,6 +27,8 @@ const RegisterScreen = ({ navigation }) => {
     
     const [loading, setLoading] = useState(false);
     const [passwordMismatch, setPasswordMismatch] = useState(false);
+
+    const { setSignupFlag, clearSignupFlag, initializeTokens } = useAuth();
 
     // 서버 API URL
     const API_BASE_URL = 'http://13.124.86.254';
@@ -120,6 +123,14 @@ const RegisterScreen = ({ navigation }) => {
             console.log('백엔드 회원가입 성공:', data);
 
             if (data.isSuccess) {
+                // 백엔드 회원가입 성공 시 토큰 저장
+                if (data.result && data.result.tokenInfo) {
+                    await initializeTokens(
+                        data.result.tokenInfo.accessToken,
+                        data.result.tokenInfo.refreshToken
+                    );
+                    console.log('회원가입 토큰 저장 완료');
+                }
                 return data;
             } else {
                 throw new Error(data.message || '백엔드 회원가입에 실패했습니다.');
@@ -137,12 +148,16 @@ const RegisterScreen = ({ navigation }) => {
         try {
             console.log('회원가입 프로세스 시작');
             
-            // 1. Firebase 회원가입
+            // 1. 플래그를 가장 먼저 설정 (Firebase 회원가입 전에)
+            setSignupFlag();
+            
+            // 2. Firebase 회원가입
             console.log('Firebase 회원가입 시도');
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             console.log('Firebase 회원가입 성공:', userCredential.user.uid);
             
-            // 2. Firebase 프로필 업데이트 (선택사항 - 백엔드에서 주로 관리)
+            // 3. Firebase 프로필 업데이트
+            console.log('Firebase 프로필 업데이트 중');
             await updateProfile(userCredential.user, {
                 displayName: JSON.stringify({
                     name: name.trim(),
@@ -151,20 +166,19 @@ const RegisterScreen = ({ navigation }) => {
             });
             console.log('Firebase 프로필 업데이트 완료');
 
-            // 3. Firebase ID 토큰 가져오기
+            // 4. Firebase ID 토큰 가져오기
             console.log('Firebase ID 토큰 가져오기');
             const idToken = await userCredential.user.getIdToken();
             console.log('Firebase ID 토큰 획득 성공');
             
-            // 4. 백엔드에 회원가입 요청
+            // 5. 백엔드에 회원가입 요청
             console.log('백엔드 회원가입 요청');
             const backendResponse = await signUpWithBackend(idToken);
             
             if (backendResponse.isSuccess) {
+                // 6. 회원가입 완료 - 플래그 초기화
+                clearSignupFlag();
                 console.log('전체 회원가입 프로세스 완료');
-                
-                // 회원가입 성공 시 Firebase에서 로그아웃하고 로그인 화면으로 이동
-                await signOut(auth);
                 
                 Alert.alert(
                     '회원가입 완료',
@@ -182,6 +196,9 @@ const RegisterScreen = ({ navigation }) => {
                 throw new Error('백엔드 회원가입 실패: ' + backendResponse.message);
             }
         } catch (error) {
+            // 에러 발생 시 플래그 초기화
+            clearSignupFlag();
+            
             console.error('회원가입 실패 상세:', {
                 code: error.code,
                 message: error.message,
