@@ -99,14 +99,16 @@ const Recommendation = ({ navigation }) => {
             );
 
             if (!response.ok) {
-                if (response.status === 404) {
-                    setRecommendationData(prev => ({ ...prev, questionBased: 'insufficient' }));
-                    return;
-                }
                 throw new Error(`질문 기반 추천 조회 실패! status: ${response.status}`);
             }
 
             const data = await response.json();
+            
+            // result가 없거나 null이면 데이터 부족으로 처리
+            if (data.isSuccess && (!data.result || data.result === null)) {
+                setRecommendationData(prev => ({ ...prev, questionBased: 'insufficient' }));
+                return;
+            }
             
             if (data.isSuccess && data.result) {
                 setRecommendationData(prev => ({
@@ -141,14 +143,16 @@ const Recommendation = ({ navigation }) => {
             );
 
             if (!response.ok) {
-                if (response.status === 404) {
-                    setRecommendationData(prev => ({ ...prev, answerBased: 'insufficient' }));
-                    return;
-                }
                 throw new Error(`답변 기반 추천 조회 실패! status: ${response.status}`);
             }
 
             const data = await response.json();
+            
+            // result가 없거나 null이면 데이터 부족으로 처리
+            if (data.isSuccess && (!data.result || data.result === null)) {
+                setRecommendationData(prev => ({ ...prev, answerBased: 'insufficient' }));
+                return;
+            }
             
             if (data.isSuccess && data.result) {
                 setRecommendationData(prev => ({
@@ -272,7 +276,7 @@ const Recommendation = ({ navigation }) => {
         return (
             <View style={styles.insufficientCard}>
                 <View style={styles.insufficientIconWrapper}>
-                    <Ionicons name={content.icon} size={32} color="#90D1BE" />
+                    <Ionicons name={content.icon} size={32} color="#CCCCCC" />
                 </View>
                 <Text style={styles.insufficientTitle}>{content.title}</Text>
                 <Text style={styles.insufficientMessage}>{content.message}</Text>
