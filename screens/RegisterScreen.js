@@ -28,6 +28,9 @@ const RegisterScreen = ({ navigation }) => {
     const [loading, setLoading] = useState(false);
     const [passwordMismatch, setPasswordMismatch] = useState(false);
 
+    // 포커스 상태 관리
+    const [focusedInput, setFocusedInput] = useState(null);
+
     const { setSignupFlag, clearSignupFlag, initializeTokens } = useAuth();
 
     // 서버 API URL
@@ -150,7 +153,7 @@ const RegisterScreen = ({ navigation }) => {
         try {
             console.log('회원가입 프로세스 시작');
             
-            // ✅ 1. 플래그를 가장 먼저 설정 (Firebase 회원가입 전에!)
+            // 1. 플래그 먼저 설정
             setSignupFlag();
             
             // 2. Firebase 회원가입
@@ -278,6 +281,19 @@ const RegisterScreen = ({ navigation }) => {
         }
     };
 
+    // 입력 필드 스타일 결정 함수
+    const getInputStyle = (inputName) => {
+        if (inputName === 'passwordConfirm' && passwordMismatch) {
+            return [styles.input, styles.errorInput];
+        }
+        
+        if (focusedInput === inputName) {
+            return [styles.input, styles.focusedInput];
+        }
+        
+        return styles.input;
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#fff" />
@@ -300,9 +316,11 @@ const RegisterScreen = ({ navigation }) => {
                     <View style={styles.inputSection}>
                         <Text style={styles.label}>이메일</Text>
                         <TextInput
-                            style={styles.input}
+                            style={getInputStyle('email')}
                             value={email}
                             onChangeText={setEmail}
+                            onFocus={() => setFocusedInput('email')}
+                            onBlur={() => setFocusedInput(null)}
                             keyboardType="email-address"
                             autoCapitalize="none"
                             autoCorrect={false}
@@ -316,12 +334,14 @@ const RegisterScreen = ({ navigation }) => {
                     <View style={styles.inputSection}>
                         <Text style={styles.label}>비밀번호</Text>
                         <TextInput
-                            style={styles.passwordInput}
+                            style={getInputStyle('password')}
                             placeholder="비밀번호를 입력하세요 (6자 이상)"
                             placeholderTextColor="#999"
                             secureTextEntry
                             value={password}
                             onChangeText={setPassword}
+                            onFocus={() => setFocusedInput('password')}
+                            onBlur={() => setFocusedInput(null)}
                             autoCapitalize="none"
                             autoCorrect={false}
                             editable={!loading}
@@ -337,15 +357,14 @@ const RegisterScreen = ({ navigation }) => {
                             )}
                         </View>
                         <TextInput
-                            style={[
-                                styles.input,
-                                passwordMismatch && styles.errorInput
-                            ]}
+                            style={getInputStyle('passwordConfirm')}
                             placeholder="비밀번호를 다시 입력하세요"
                             placeholderTextColor="#999"
                             secureTextEntry
                             value={passwordConfirm}
                             onChangeText={handlePasswordConfirmChange}
+                            onFocus={() => setFocusedInput('passwordConfirm')}
+                            onBlur={() => setFocusedInput(null)}
                             autoCapitalize="none"
                             autoCorrect={false}
                             editable={!loading}
@@ -356,11 +375,13 @@ const RegisterScreen = ({ navigation }) => {
                     <View style={styles.inputSection}>
                         <Text style={styles.label}>이름</Text>
                         <TextInput
-                            style={styles.input}
+                            style={getInputStyle('name')}
                             placeholder="실명을 입력해주세요"
                             placeholderTextColor="#999"
                             value={name}
                             onChangeText={setName}
+                            onFocus={() => setFocusedInput('name')}
+                            onBlur={() => setFocusedInput(null)}
                             editable={!loading}
                         />
                     </View>
@@ -369,11 +390,13 @@ const RegisterScreen = ({ navigation }) => {
                     <View style={styles.inputSection}>
                         <Text style={styles.label}>닉네임</Text>
                         <TextInput
-                            style={styles.input}
+                            style={getInputStyle('nickname')}
                             placeholder="사용할 닉네임을 입력해주세요 (2자 이상)"
                             placeholderTextColor="#999"
                             value={nickname}
                             onChangeText={setNickname}
+                            onFocus={() => setFocusedInput('nickname')}
+                            onBlur={() => setFocusedInput(null)}
                             editable={!loading}
                         />
                     </View>
@@ -432,6 +455,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'baseline',
     },
+    // 기본 입력 필드 (비활성화 상태)
     input: {
         height: 52,
         borderWidth: 1,
@@ -444,20 +468,13 @@ const styles = StyleSheet.create({
         color: '#4B4B4B',
         backgroundColor: '#F3FCF9',
     },
-    passwordInput: {
-        height: 52,
-        borderWidth: 1,
+    // 활성화 상태 (포커스)
+    focusedInput: {
         borderColor: '#666666',
-        borderRadius: 8,
-        paddingHorizontal: 16,
-        paddingVertical: 16,
-        fontSize: 16,
-        fontFamily: 'SUIT-Medium',
-        color: '#4B4B4B',
         backgroundColor: '#FFFFFF',
     },
+    // 에러 상태
     errorInput: {
-        height: 52,
         borderColor: '#FF6B6B',
         backgroundColor: '#FFF5F5',
     },
